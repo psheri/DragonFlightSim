@@ -3,6 +3,11 @@
 
 #include "FlightPathfinder.h"
 
+void AFlightPathfinder::DrawWorldBounds()
+{
+	DrawDebugBox(GetWorld(), this->octree.WorldBounds.GetCenter(), this->octree.WorldBounds.GetExtent(), FColor::Emerald);
+}
+
 void AFlightPathfinder::DrawPath(TArray<FVector>& points)
 {
 	for (int i = 0; i < points.Num()-1; ++i) {
@@ -24,7 +29,7 @@ AFlightPathfinder::AFlightPathfinder()
 void AFlightPathfinder::BeginPlay()
 {
 	Super::BeginPlay();
-	
+	octree.SetWorldBounds(this->min, this->max);
 }
 
 // Called every frame
@@ -41,6 +46,7 @@ void AFlightPathfinder::Tick(float DeltaTime)
 		{-2240, 60,       170},
 	};
 	DrawPath(points);
+	DrawWorldBounds();
 }
 
 

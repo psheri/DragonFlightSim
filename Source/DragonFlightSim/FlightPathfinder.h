@@ -1,18 +1,29 @@
 
 
 #pragma once
-
+#include "MyOctree.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "FlightPathfinder.generated.h"
+
 
 UCLASS()
 class DRAGONFLIGHTSIM_API AFlightPathfinder : public AActor
 {
 	GENERATED_BODY()
-	
+
+	UPROPERTY(EditAnywhere, Category = "Initial World Bounds")
+	FVector min;
+
+	UPROPERTY(EditAnywhere, Category = "Initial World Bounds")
+	FVector max;
+
+private:
+	virtual void DrawWorldBounds();
 public:	
-	void DrawPath(TArray<FVector>& points);
+
+	MyOctree octree;
+	virtual void DrawPath(TArray<FVector>& points);
 	// Sets default values for this actor's properties
 	AFlightPathfinder();
 
