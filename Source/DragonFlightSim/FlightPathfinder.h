@@ -1,7 +1,7 @@
 
 
 #pragma once
-#include "MyOctree.h"
+#include "FMyOctree.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "FlightPathfinder.generated.h"
@@ -12,18 +12,9 @@ class DRAGONFLIGHTSIM_API AFlightPathfinder : public AActor
 {
 	GENERATED_BODY()
 
-	//UPROPERTY(EditAnywhere, Category = "Initial World Bounds")
-	//FVector min;
-	//
-	//UPROPERTY(EditAnywhere, Category = "Initial World Bounds")
-	//FVector max;
-
-private:
-	virtual void DrawBBox(const FBox &bbox);
 public:	
-
-	MyOctree octree;
-	virtual void DrawPath(TArray<FVector>& points);
+	FMyOctree MyOctree;
+	virtual void DrawPath(TArray<FVector>& Points);
 	// Sets default values for this actor's properties
 	AFlightPathfinder();
 
@@ -34,5 +25,7 @@ protected:
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
+	virtual void DrawBBox(const FBox& BBox);
 
 };

@@ -9,14 +9,14 @@ ADragon::ADragon()
 
 }
 
-FVector initialWorldPos;
-FVector velocity = { 100, 0, 0 };
-float maxMoveDistance = 200;
+FVector InitialWorldPos;
+FVector Velocity = { 100, 0, 0 };
+float MaxMoveDistance = 200;
 // Called when the game starts or when spawned
 void ADragon::BeginPlay()
 {
 	Super::BeginPlay();
-	initialWorldPos = this->GetActorLocation();
+	InitialWorldPos = this->GetActorLocation();
 	
 }
 
@@ -26,20 +26,20 @@ void ADragon::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	FVector displacement = velocity * DeltaTime;
+	FVector displacement = Velocity * DeltaTime;
 
 	FVector newWorldPos = GetActorLocation() + displacement;
 
 	SetActorLocation(newWorldPos);
 
-	float distanceMoved = FVector::Dist(initialWorldPos, newWorldPos);
+	float distanceMoved = FVector::Dist(InitialWorldPos, newWorldPos);
 
-	if (distanceMoved > maxMoveDistance) {
-		initialWorldPos = initialWorldPos + velocity.GetSafeNormal() * maxMoveDistance;	//prevent overshooting
-		SetActorLocation(initialWorldPos);
-		velocity *= -1;
+	if (distanceMoved > MaxMoveDistance) {
+		InitialWorldPos = InitialWorldPos + Velocity.GetSafeNormal() * MaxMoveDistance;	//prevent overshooting
+		SetActorLocation(InitialWorldPos);
+		Velocity *= -1;
 
-		LogMain << "change direction: " << velocity.X;
+		LogMain << "change direction: " << Velocity.X;
 	}
 
 }
