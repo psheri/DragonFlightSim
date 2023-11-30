@@ -1,4 +1,5 @@
 #include "Dragon.h"
+#include "LogHelper.h"
 
 // Sets default values
 ADragon::ADragon()
@@ -36,8 +37,9 @@ void ADragon::Tick(float DeltaTime)
 	if (distanceMoved > maxMoveDistance) {
 		initialWorldPos = initialWorldPos + velocity.GetSafeNormal() * maxMoveDistance;	//prevent overshooting
 		SetActorLocation(initialWorldPos);
-
 		velocity *= -1;
+
+		LogMain << "change direction: " << velocity.Z;
 	}
 
 }
