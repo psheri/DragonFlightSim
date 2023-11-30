@@ -2,10 +2,11 @@
 
 
 #include "FlightPathfinder.h"
+#include <Kismet/GameplayStatics.h>
 
-void AFlightPathfinder::DrawWorldBounds()
+void AFlightPathfinder::DrawBBox(const FBox &bbox)
 {
-	DrawDebugBox(GetWorld(), this->octree.WorldBounds.GetCenter(), this->octree.WorldBounds.GetExtent(), FColor::Emerald);
+	DrawDebugBox(GetWorld(), bbox.GetCenter(), bbox.GetExtent(), FColor::Emerald);
 }
 
 void AFlightPathfinder::DrawPath(TArray<FVector>& points)
@@ -29,7 +30,11 @@ AFlightPathfinder::AFlightPathfinder()
 void AFlightPathfinder::BeginPlay()
 {
 	Super::BeginPlay();
-	octree.SetWorldBounds(this->min, this->max);
+	//octree.SetWorldBounds(this->min, this->max);
+	TArray<AActor*> obstacles;
+	UGameplayStatics::GetAllActorsWithTag(this->GetWorld(), FName("Obstacle"), obstacles);
+
+	octree = MyOctree(obstacles);
 }
 
 // Called every frame
@@ -37,16 +42,21 @@ void AFlightPathfinder::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	//test drawing some lines
-	TArray<FVector> points = { 
-		{-2240, 60,       170},
-		{-2240, 60 + 100, 170},
-		{-2240, 60 + 100, 170 + 100},
-		{-2240, 60,       170 + 100},
-		{-2240, 60,       170},
-	};
-	DrawPath(points);
-	DrawWorldBounds();
+	for (int i = 0; i < 20; ++i) {
+		//test drawing some lines
+		TArray<FVector> points = {
+			{-2300+15*(float)i, 60,       170},
+			{-2300+15*(float)i, 60 + 100, 170},
+			{-2300+15*(float)i, 60 + 100, 170 + 100},
+			{-2300+15*(float)i, 60,       170 + 100},
+			{-2300+15*(float)i, 60,       170},
+		};
+
+		DrawPath(points);
+	}
+
+	
+	DrawBBox(this->octree.WorldBounds);
 }
 
 

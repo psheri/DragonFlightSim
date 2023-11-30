@@ -10,7 +10,7 @@ ADragon::ADragon()
 }
 
 FVector initialWorldPos;
-FVector velocity = { 0, 0, 100 };
+FVector velocity = { 100, 0, 0 };
 float maxMoveDistance = 200;
 // Called when the game starts or when spawned
 void ADragon::BeginPlay()
@@ -39,7 +39,7 @@ void ADragon::Tick(float DeltaTime)
 		SetActorLocation(initialWorldPos);
 		velocity *= -1;
 
-		LogMain << "change direction: " << velocity.Z;
+		LogMain << "change direction: " << velocity.X;
 	}
 
 }

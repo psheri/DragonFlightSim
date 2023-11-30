@@ -12,14 +12,14 @@ class DRAGONFLIGHTSIM_API AFlightPathfinder : public AActor
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, Category = "Initial World Bounds")
-	FVector min;
-
-	UPROPERTY(EditAnywhere, Category = "Initial World Bounds")
-	FVector max;
+	//UPROPERTY(EditAnywhere, Category = "Initial World Bounds")
+	//FVector min;
+	//
+	//UPROPERTY(EditAnywhere, Category = "Initial World Bounds")
+	//FVector max;
 
 private:
-	virtual void DrawWorldBounds();
+	virtual void DrawBBox(const FBox &bbox);
 public:	
 
 	MyOctree octree;
