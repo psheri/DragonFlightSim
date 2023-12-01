@@ -4,9 +4,9 @@
 #include "FlightPathfinder.h"
 #include <Kismet/GameplayStatics.h>
 
-void AFlightPathfinder::DrawBBox(const FBox &BBox)
+void AFlightPathfinder::DrawBBox(const FBox &BBox, float Thickness)
 {
-	DrawDebugBox(GetWorld(), BBox.GetCenter(), BBox.GetExtent(), FColor::Emerald);
+	DrawDebugBox(GetWorld(), BBox.GetCenter(), BBox.GetExtent(), FColor::Emerald, false, -1, 0U, Thickness);
 }
 
 void AFlightPathfinder::DrawPath(TArray<FVector>& Points)
@@ -35,6 +35,18 @@ void AFlightPathfinder::BeginPlay()
 	UGameplayStatics::GetAllActorsWithTag(this->GetWorld(), FName("Obstacle"), Obstacles);
 
 	this->MyOctree = FMyOctree(Obstacles);
+	this->MyOctree.Build();
+}
+
+void AFlightPathfinder::DrawOctree(FOctreeNode* CurrentNode) {
+	DrawBBox(CurrentNode->Bounds);
+	if (CurrentNode->Children != nullptr) {
+		for (int i = 0; i < 8; i++) {
+			if (CurrentNode->Children[i] != nullptr) {
+				DrawOctree(CurrentNode->Children[i]);
+			}
+		}
+	}
 }
 
 // Called every frame
@@ -56,8 +68,12 @@ void AFlightPathfinder::Tick(float DeltaTime)
 	}
 
 	
-	DrawBBox(this->MyOctree.WorldBounds);
+	DrawBBox(this->MyOctree.WorldBounds, 10);
+	DrawOctree(this->MyOctree.Root);
+
 }
+
+
 
 
 

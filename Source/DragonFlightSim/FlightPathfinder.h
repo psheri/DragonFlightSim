@@ -26,6 +26,7 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	virtual void DrawBBox(const FBox& BBox);
+	virtual void DrawBBox(const FBox& BBox, float Thickness = 0);
+	virtual void DrawOctree(FOctreeNode* CurrentNode);
 
 };
