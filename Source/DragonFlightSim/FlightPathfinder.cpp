@@ -4,6 +4,7 @@
 #include "FlightPathfinder.h"
 #include <Kismet/GameplayStatics.h>
 
+
 void AFlightPathfinder::DrawBBox(const FBox& BBox, float Thickness, FColor Color, bool bIsSolid)
 {
 	if (bIsSolid) {
@@ -39,7 +40,7 @@ void AFlightPathfinder::BeginPlay()
 	TArray<AActor*> Obstacles;
 	UGameplayStatics::GetAllActorsWithTag(this->GetWorld(), FName("Obstacle"), Obstacles);
 
-	this->MyOctree = FMyOctree(Obstacles);
+	this->MyOctree = FMyOctree(Obstacles, &AStar);
 	this->MyOctree.Build();
 }
 
@@ -63,7 +64,7 @@ void AFlightPathfinder::DrawOctree(FMyOctreeNode* CurrentNode) {
 	else if (CurrentNode->IsLeaf() && CurrentNode->ContainedActors.Num() != 0) {
 		//LogMain << "here";
 		FColor solidColor = FColor(0, 0, 255, 32);
-		DrawBBox(CurrentNode->Bounds, 5, solidColor, true);
+		//DrawBBox(CurrentNode->Bounds, 5, solidColor, true);
 	}
 }
 
@@ -81,13 +82,29 @@ void AFlightPathfinder::Tick(float DeltaTime)
 			{-2300+15*(float)i, 60,       170 + 100},
 			{-2300+15*(float)i, 60,       170},
 		};
-
+	
 		DrawPath(Points);
 	}
-
 	
 	DrawBBox(this->MyOctree.WorldBounds, 10);
-	DrawOctree(this->MyOctree.Root);
+	//DrawOctree(this->MyOctree.Root);
+	
+	for (int i = 0; i < AStar.Edges.Num(); i++) {
+		DrawDebugLine(GetWorld(),
+			AStar.Edges[i]->Start->OctreeNode->Bounds.GetCenter(),
+			AStar.Edges[i]->End->OctreeNode->Bounds.GetCenter(),
+			FColor::Cyan
+		);
+	}
+	//LogMain << "@AStar  Nodes.Num() = " << Nodes.Num();
+	for (int i = 0; i < AStar.Nodes.Num(); i++) {
+		DrawDebugSphere(GetWorld(),
+			AStar.Nodes[i]->OctreeNode->Bounds.GetCenter(),
+			64,	//radius
+			8, //segments
+			FColor::Blue
+		);
+	}
 
 }
 

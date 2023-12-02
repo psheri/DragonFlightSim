@@ -3,7 +3,11 @@
 
 #include "FMyOctreeNode.h"
 
-FMyOctreeNode::FMyOctreeNode(FBox Bounds) {
+inline static uint32_t OCTREE_NODE_ID = 0;
+FMyOctreeNode::FMyOctreeNode(FBox Bounds, FMyOctreeNode* Parent) {
+
+	this->ID = OCTREE_NODE_ID++;
+	this->Parent = Parent;
 	this->Bounds = Bounds;
 
 	FVector Center = Bounds.GetCenter();
@@ -23,6 +27,5 @@ FMyOctreeNode::FMyOctreeNode(FBox Bounds) {
 		ChildMax.Z = (i & 4) ? Max.Z : Center.Z;
 
 		ChildBounds[i] = FBox(ChildMin, ChildMax);
-
 	}
 }

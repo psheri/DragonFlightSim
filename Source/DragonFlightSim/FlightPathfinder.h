@@ -2,10 +2,11 @@
 
 #pragma once
 #include "MyOctree/FMyOctree.h"
+#include "AStar/FAStar.h"
+
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "FlightPathfinder.generated.h"
-
 
 UCLASS()
 class DRAGONFLIGHTSIM_API AFlightPathfinder : public AActor
@@ -14,6 +15,7 @@ class DRAGONFLIGHTSIM_API AFlightPathfinder : public AActor
 
 public:	
 	FMyOctree MyOctree;
+	FAStar AStar;
 	virtual void DrawPath(TArray<FVector>& Points);
 	// Sets default values for this actor's properties
 	AFlightPathfinder();

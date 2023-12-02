@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "../Utils/LogHelper.h"
 #include "FMyOctreeNode.h"
-
+#include "../AStar/FAStar.h"
 /**
  * 
  */
@@ -17,13 +17,21 @@
 class DRAGONFLIGHTSIM_API FMyOctree
 {
 public:
+	
+
 	FBox WorldBounds;
 
-	FMyOctreeNode* Root;
+	FMyOctreeNode* Root = nullptr;
 
 	TArray<AActor*> Obstacles;
-	FMyOctree(TArray<AActor*>& Obstacles);
 
+	TArray<FMyOctreeNode*> LeafNodes;
+
+	FAStar* AStar;
+
+	FMyOctree(TArray<AActor*>& Obstacles, FAStar* AStar);
+
+	UWorld* UWORLD;
 
 	void Build();
 	
@@ -31,9 +39,14 @@ public:
 
 	void Insert(AActor* Obstacle);
 
+	void GetLeafNodes(FMyOctreeNode* OctreeNode);
+
+	void ProcessLinks();
+
 	FMyOctree();
 	~FMyOctree();
 
 private:
+	
 	void DivideAndInsert(FMyOctreeNode* CurrentNode, AActor* Obstacle);
 };

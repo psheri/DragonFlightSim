@@ -3,14 +3,18 @@
 
 #include "FMyOctree.h"
 
-FMyOctree::FMyOctree(TArray<AActor*>& Obstacles)
+FMyOctree::FMyOctree(TArray<AActor*>& Obstacles, FAStar* AStar)
 {
+	this->AStar = AStar;
 	// we want to make a cube that encompasses all obstacle bounds
 	FVector Min = { FLT_MAX,  FLT_MAX,  FLT_MAX };
 	FVector Max = {-FLT_MAX, -FLT_MAX, -FLT_MAX };
 
 	this->Obstacles = Obstacles;
 
+	if (this->Obstacles.Num() > 0) {
+		this->UWORLD = this->Obstacles[0]->GetWorld();
+	}
 	for (AActor* Obstacle : this->Obstacles) {
 		FBox obstacleBounds = Obstacle->GetComponentByClass<UStaticMeshComponent>()->Bounds.GetBox();
 		Min.X = FMath::Min(Min.X, obstacleBounds.Min.X);
@@ -31,7 +35,7 @@ FMyOctree::FMyOctree(TArray<AActor*>& Obstacles)
 
 	this->SetWorldBounds(TempBounds.GetCenter() - WorldSize, TempBounds.GetCenter() + WorldSize);
 
-	this->Root = new FMyOctreeNode(WorldBounds);
+	this->Root = new FMyOctreeNode(WorldBounds, nullptr);
 
 
 }
@@ -41,6 +45,11 @@ void FMyOctree::Build()
 	for (AActor* Obstacle : this->Obstacles) {
 		this->Insert(Obstacle);
 	}
+
+	GetLeafNodes(this->Root);
+	LogMain << "Empty leaf node count: " << this->LeafNodes.Num();
+	ProcessLinks();
+	LogMain << "Total A* Edges: " << this->AStar->EdgeCount;
 }
 
 void FMyOctree::SetWorldBounds(FVector Min, FVector Max)
@@ -53,11 +62,69 @@ void FMyOctree::Insert(AActor* Obstacle)
 	DivideAndInsert(Root, Obstacle);
 }
 
-FMyOctree::FMyOctree()
-{
+void FMyOctree::GetLeafNodes(FMyOctreeNode* OctreeNode) {
+	if (OctreeNode == nullptr)
+		return;
+	if (OctreeNode->Children == nullptr) {
+		if (OctreeNode->ContainedActors.Num() == 0) {
+			LeafNodes.Add(OctreeNode);
+			AStar->AddNode(OctreeNode);
+		}
+	}
+	else {
+		for (int i = 0; i < 8; i++) {
+			GetLeafNodes(OctreeNode->Children[i]);
+			// get siblings
+			for (int s = 0; s < 8; s++) {
+				if (s != i) {
+					AStar->AddEdge(OctreeNode->Children[i], OctreeNode->Children[s]);
+				}
+			}
+		}
+	}
 }
 
-FMyOctree::~FMyOctree()
+void FMyOctree::ProcessLinks()
+{
+	// store node IDs on a hashmap to avoid redundant entries
+	TMap<uint32_t, uint32_t> SubGraphConnections;
+
+	// bruteforce check
+	for (FMyOctreeNode* n : LeafNodes) {
+		for (FMyOctreeNode* m : LeafNodes) {
+			if (n->ID != m->ID && n->Parent->ID != m->Parent->ID) {
+				FVector StartPos = n->Bounds.GetCenter();
+				FVector EndPos = m->Bounds.GetCenter();
+				FCollisionQueryParams CollisionParams;
+				FHitResult OutHit;
+
+				// sphere cast
+				bool bHit =  this->UWORLD->SweepSingleByChannel(
+					OutHit,
+					StartPos,
+					EndPos,
+					FQuat::Identity,
+					ECC_Visibility, //ECC_GameTraceChannel11,
+					FCollisionShape::MakeSphere(64.0f),
+					CollisionParams
+				);
+
+				if (!bHit)
+				{
+					LogMain << "no hit -> link(" << n->ID << ", " << m->ID << ")";
+					if (!SubGraphConnections.Contains(n->Parent->ID))
+					{
+						SubGraphConnections.Add(n->Parent->ID, m->Parent->ID);
+						AStar->AddEdge(n, m);
+					}
+					
+				}
+			}
+		}
+	}
+}
+
+FMyOctree::FMyOctree()
 {
 }
 
@@ -74,7 +141,7 @@ void FMyOctree::DivideAndInsert(FMyOctreeNode* CurrentNode, AActor* Obstacle)
 	bool bDividing = false;
 	for (int i = 0; i < 8; ++i) {
 		if (CurrentNode->Children[i] == nullptr) {
-			CurrentNode->Children[i] = new FMyOctreeNode(CurrentNode->ChildBounds[i]);
+			CurrentNode->Children[i] = new FMyOctreeNode(CurrentNode->ChildBounds[i], CurrentNode);
 		}
 		// if obstacle's bbox intersects with the current octant, push it down the tree and subdivide further
 		if (CurrentNode->ChildBounds[i].Intersect(Obstacle->GetComponentByClass<UStaticMeshComponent>()->Bounds.GetBox())) {
@@ -96,4 +163,8 @@ void FMyOctree::DivideAndInsert(FMyOctreeNode* CurrentNode, AActor* Obstacle)
 	}
 }
 
+FMyOctree::~FMyOctree()
+{
+	
+}
 
