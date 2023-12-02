@@ -33,6 +33,7 @@ public:
 
 	UWorld* UWORLD;
 
+	bool bIsBuilt = false;
 	void Build();
 	
 	void SetWorldBounds(FVector Min, FVector Max);
@@ -46,6 +47,9 @@ public:
 	FMyOctree();
 	~FMyOctree();
 
+	void ClearOctree();
+private:
+	void DeleteOctreeNode(FMyOctreeNode* CurrentNode, uint32_t &OutDeletedNodeCount);
 private:
 	
 	void DivideAndInsert(FMyOctreeNode* CurrentNode, AActor* Obstacle);

@@ -34,14 +34,12 @@ FMyOctree::FMyOctree(TArray<AActor*>& Obstacles, FAStar* AStar)
 	FVector WorldSize = { (float)NearestPowerOf2, (float)NearestPowerOf2, (float)NearestPowerOf2 };
 
 	this->SetWorldBounds(TempBounds.GetCenter() - WorldSize, TempBounds.GetCenter() + WorldSize);
-
-	this->Root = new FMyOctreeNode(WorldBounds, nullptr);
-
-
 }
 
 void FMyOctree::Build()
 {
+	this->Root = new FMyOctreeNode(WorldBounds, nullptr);
+
 	for (AActor* Obstacle : this->Obstacles) {
 		this->Insert(Obstacle);
 	}
@@ -50,6 +48,8 @@ void FMyOctree::Build()
 	LogMain << "Empty leaf node count: " << this->LeafNodes.Num();
 	ProcessLinks();
 	LogMain << "Total A* Edges: " << this->AStar->EdgeCount;
+
+	bIsBuilt = true;
 }
 
 void FMyOctree::SetWorldBounds(FVector Min, FVector Max)
@@ -111,7 +111,7 @@ void FMyOctree::ProcessLinks()
 
 				if (!bHit)
 				{
-					LogMain << "no hit -> link(" << n->ID << ", " << m->ID << ")";
+					//LogMain << "no hit -> link(" << n->ID << ", " << m->ID << ")";
 					if (!SubGraphConnections.Contains(n->Parent->ID))
 					{
 						SubGraphConnections.Add(n->Parent->ID, m->Parent->ID);
@@ -163,8 +163,34 @@ void FMyOctree::DivideAndInsert(FMyOctreeNode* CurrentNode, AActor* Obstacle)
 	}
 }
 
+void FMyOctree::ClearOctree() {
+	uint32_t OutDeletedNodeCount = 0;
+	this->DeleteOctreeNode(Root, OutDeletedNodeCount);
+	LogMain << "@FMyOctree::ClearOctree -> deleted " << OutDeletedNodeCount << " nodes";
+}
+
+void FMyOctree::DeleteOctreeNode(FMyOctreeNode* CurrentNode, uint32_t &OutDeletedNodeCount) {
+	if (CurrentNode == nullptr)	// prevent crash if destructor is called before octree is built
+		return;
+
+	// free dynamically alloc'd mem
+	if (CurrentNode->Children != nullptr) {
+		for (int i = 0; i < 8; ++i) {
+			if (CurrentNode->Children[i] != nullptr) {
+				DeleteOctreeNode(CurrentNode->Children[i], OutDeletedNodeCount);
+			}
+		}
+	}
+	// delete the current node
+	delete CurrentNode;
+	CurrentNode = nullptr;
+
+	OutDeletedNodeCount++;
+}
+
 FMyOctree::~FMyOctree()
 {
-	
+	LogMain << "FMyOctree destructor called -> clear octree";
+	this->ClearOctree();
 }
 

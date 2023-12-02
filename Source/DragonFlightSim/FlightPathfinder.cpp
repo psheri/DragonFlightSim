@@ -42,6 +42,7 @@ void AFlightPathfinder::BeginPlay()
 
 	this->MyOctree = FMyOctree(Obstacles, &AStar);
 	this->MyOctree.Build();
+	//Destroy();
 }
 
 void AFlightPathfinder::DrawOctree(FMyOctreeNode* CurrentNode) {
@@ -72,6 +73,8 @@ void AFlightPathfinder::DrawOctree(FMyOctreeNode* CurrentNode) {
 void AFlightPathfinder::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	//return;
 
 	for (int i = 0; i < 20; ++i) {
 		//test drawing some lines
