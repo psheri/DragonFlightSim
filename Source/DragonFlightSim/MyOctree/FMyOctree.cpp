@@ -31,7 +31,7 @@ FMyOctree::FMyOctree(TArray<AActor*>& Obstacles)
 
 	this->SetWorldBounds(TempBounds.GetCenter() - WorldSize, TempBounds.GetCenter() + WorldSize);
 
-	this->Root = new FOctreeNode(WorldBounds);
+	this->Root = new FMyOctreeNode(WorldBounds);
 
 
 }
@@ -61,19 +61,20 @@ FMyOctree::~FMyOctree()
 {
 }
 
-void FMyOctree::DivideAndInsert(FOctreeNode* CurrentNode, AActor* Obstacle)
+void FMyOctree::DivideAndInsert(FMyOctreeNode* CurrentNode, AActor* Obstacle)
 {
 	// end recursion here
 	if (CurrentNode->Bounds.GetSize().X <= MIN_NODE_DIMENSIONS) {
+		CurrentNode->ContainedActors.Add(Obstacle);
 		return;
 	}
 	if (CurrentNode->Children == nullptr) {
-		CurrentNode->Children = new FOctreeNode * [8] { nullptr }; //initialize all children to nullptr
+		CurrentNode->Children = new FMyOctreeNode * [8] { nullptr }; //initialize all children to nullptr
 	}
 	bool bDividing = false;
 	for (int i = 0; i < 8; ++i) {
 		if (CurrentNode->Children[i] == nullptr) {
-			CurrentNode->Children[i] = new FOctreeNode(CurrentNode->ChildBounds[i]);
+			CurrentNode->Children[i] = new FMyOctreeNode(CurrentNode->ChildBounds[i]);
 		}
 		// if obstacle's bbox intersects with the current octant, push it down the tree and subdivide further
 		if (CurrentNode->ChildBounds[i].Intersect(Obstacle->GetComponentByClass<UStaticMeshComponent>()->Bounds.GetBox())) {
@@ -81,8 +82,9 @@ void FMyOctree::DivideAndInsert(FOctreeNode* CurrentNode, AActor* Obstacle)
 			this->DivideAndInsert(CurrentNode->Children[i], Obstacle);
 		}
 	}
-	if (bDividing == false) {
-		// delete each individual FOctreeNode
+	if (!bDividing) {
+		CurrentNode->ContainedActors.Add(Obstacle);
+		// delete each individual FMyOctreeNode
 		for (int i = 0; i < 8; ++i) {
 			if (CurrentNode->Children[i] != nullptr) {
 				delete CurrentNode->Children[i];

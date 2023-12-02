@@ -1,7 +1,7 @@
 
 
 #pragma once
-#include "FMyOctree.h"
+#include "MyOctree/FMyOctree.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "FlightPathfinder.generated.h"
@@ -26,7 +26,7 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	virtual void DrawBBox(const FBox& BBox, float Thickness = 0);
-	virtual void DrawOctree(FOctreeNode* CurrentNode);
+	virtual void DrawBBox(const FBox& BBox, float Thickness = 0, FColor Color = FColor::Emerald, bool bIsSolid = false);
+	virtual void DrawOctree(FMyOctreeNode* CurrentNode);
 
 };

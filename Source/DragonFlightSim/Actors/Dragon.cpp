@@ -1,5 +1,5 @@
 #include "Dragon.h"
-#include "LogHelper.h"
+#include "../Utils/LogHelper.h"
 
 // Sets default values
 ADragon::ADragon()

@@ -4,9 +4,14 @@
 #include "FlightPathfinder.h"
 #include <Kismet/GameplayStatics.h>
 
-void AFlightPathfinder::DrawBBox(const FBox &BBox, float Thickness)
+void AFlightPathfinder::DrawBBox(const FBox& BBox, float Thickness, FColor Color, bool bIsSolid)
 {
-	DrawDebugBox(GetWorld(), BBox.GetCenter(), BBox.GetExtent(), FColor::Emerald, false, -1, 0U, Thickness);
+	if (bIsSolid) {
+		DrawDebugSolidBox(GetWorld(), BBox.GetCenter(), BBox.GetExtent(), Color, false, -1, 0U);
+	}
+	else {
+		DrawDebugBox(GetWorld(), BBox.GetCenter(), BBox.GetExtent(), Color, false, -1, 0U, Thickness);
+	}
 }
 
 void AFlightPathfinder::DrawPath(TArray<FVector>& Points)
@@ -38,14 +43,27 @@ void AFlightPathfinder::BeginPlay()
 	this->MyOctree.Build();
 }
 
-void AFlightPathfinder::DrawOctree(FOctreeNode* CurrentNode) {
+void AFlightPathfinder::DrawOctree(FMyOctreeNode* CurrentNode) {
+	
 	DrawBBox(CurrentNode->Bounds);
+
+	for (AActor* Obstacle : CurrentNode->ContainedActors) {
+		//LogMain << "Here";
+		DrawBBox(Obstacle->GetComponentByClass<UStaticMeshComponent>()->Bounds.GetBox(), 5, FColor::Magenta);
+	}
+
 	if (CurrentNode->Children != nullptr) {
 		for (int i = 0; i < 8; i++) {
 			if (CurrentNode->Children[i] != nullptr) {
 				DrawOctree(CurrentNode->Children[i]);
 			}
+
 		}
+	}
+	else if (CurrentNode->IsLeaf() && CurrentNode->ContainedActors.Num() != 0) {
+		//LogMain << "here";
+		FColor solidColor = FColor(0, 0, 255, 32);
+		DrawBBox(CurrentNode->Bounds, 5, solidColor, true);
 	}
 }
 
