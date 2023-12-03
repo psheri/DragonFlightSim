@@ -4,7 +4,7 @@
 #include "FMyOctreeNode.h"
 
 inline static uint32_t OCTREE_NODE_ID = 0;
-FMyOctreeNode::FMyOctreeNode(FBox Bounds, FMyOctreeNode* Parent) {
+FMyOctreeNode::FMyOctreeNode(FBox Bounds, FMyOctreeNode* Parent, int Depth) {
 
 	this->ID = OCTREE_NODE_ID++;
 	this->Parent = Parent;

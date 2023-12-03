@@ -18,6 +18,7 @@ class DRAGONFLIGHTSIM_API FMyOctree
 {
 public:
 	
+    int MaxRecordedDepth = 0;
 
 	FBox WorldBounds;
 
@@ -42,15 +43,20 @@ public:
 
 	void GetLeafNodes(FMyOctreeNode* OctreeNode);
 
-	void ProcessLinks();
+	void LinkLeafNeighbours();
+
+    TArray<FMyOctreeNode*> GetFaceNeighbors(FMyOctreeNode* Node);
+
+	FMyOctreeNode* GetNodeAtPosition(const FVector &Position);
 
 	FMyOctree();
 	~FMyOctree();
 
 	void ClearOctree();
 private:
+	FMyOctreeNode* GetNodeAtPosition(const FVector &Position, FMyOctreeNode* CurrentNode);
 	void DeleteOctreeNode(FMyOctreeNode* CurrentNode, uint32_t &OutDeletedNodeCount);
 private:
 	
-	void DivideAndInsert(FMyOctreeNode* CurrentNode, AActor* Obstacle);
+	void DivideAndInsert(FMyOctreeNode* CurrentNode, AActor* Obstacle, int Depth);
 };

@@ -53,6 +53,7 @@ TArray<FAStarNode*> AFlightPathfinder::FindRandomPath()
 	return OutPath;
 }
 
+AActor* Dragon;
 // Called when the game starts or when spawned
 void AFlightPathfinder::BeginPlay()
 {
@@ -64,6 +65,11 @@ void AFlightPathfinder::BeginPlay()
 	this->MyOctree = FMyOctree(Obstacles, &AStar);
 	this->MyOctree.Build();
 	//Destroy();
+
+	TArray<AActor*> Dragons;
+	UGameplayStatics::GetAllActorsWithTag(this->GetWorld(), FName("Dragon"), Dragons);
+	if (Dragons.Num() > 0)
+		Dragon = Dragons[0];
 }
 
 void AFlightPathfinder::DrawOctree(FMyOctreeNode* CurrentNode) {
@@ -101,7 +107,7 @@ void AFlightPathfinder::DrawFlightPath(TArray<FAStarNode*> Path)
 			false, 
 			0.25,
 			0,
-			10.f  // Thickness of the line
+			30  // Thickness of the line
 		);
 	}
 }
@@ -110,8 +116,25 @@ void AFlightPathfinder::DrawFlightPath(TArray<FAStarNode*> Path)
 void AFlightPathfinder::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	DrawBBox(this->MyOctree.WorldBounds, 100);
-	return;
+	DrawBBox(this->MyOctree.WorldBounds, 10);
+
+	// later, add some uproperty bools to toggle draws from editor
+	if (Dragon != nullptr) {
+		FBox DragonBounds = Dragon->GetComponentByClass<UStaticMeshComponent>()->Bounds.GetBox();
+		FMyOctreeNode* DragonNode = MyOctree.GetNodeAtPosition(Dragon->GetActorLocation());
+		if (DragonNode != nullptr) {
+			//FColor solidColor = FColor(0, 0, 255, 32);
+			DrawBBox(DragonNode->Bounds, 0, FColor::Orange, true);
+
+			TArray<FMyOctreeNode*> FaceNeighbors = MyOctree.GetFaceNeighbors(DragonNode);
+			//LogMain << "FaceNeighbors length = " << FaceNeighbors.Num();
+			for (int i = 0; i < FaceNeighbors.Num(); i++) {
+				DrawBBox(FaceNeighbors[i]->Bounds, 0, FColor::Blue, true);
+			}
+		}
+
+
+	}
 
 	for (int i = 0; i < 20; ++i) {
 		//test drawing some lines
@@ -127,7 +150,7 @@ void AFlightPathfinder::Tick(float DeltaTime)
 	}
 	
 	
-	//DrawOctree(this->MyOctree.Root);
+	DrawOctree(this->MyOctree.Root);
 	
 	for (int i = 0; i < AStar.Edges.Num(); i++) {
 		DrawDebugLine(GetWorld(),
@@ -136,6 +159,8 @@ void AFlightPathfinder::Tick(float DeltaTime)
 			FColor::Cyan
 		);
 	}
+	
+
 	//LogMain << "@AStar  Nodes.Num() = " << Nodes.Num();
 	for (int i = 0; i < AStar.Nodes.Num(); i++) {
 		DrawDebugSphere(GetWorld(),

@@ -11,6 +11,7 @@ class DRAGONFLIGHTSIM_API FMyOctreeNode
 {
 public:
 	uint32_t ID;
+	int Depth;
 	FBox Bounds;
 	FMyOctreeNode** Children = nullptr;
 	FBox ChildBounds[8] = {};
@@ -20,7 +21,7 @@ public:
 	bool IsLeaf() {
 		return this->Children == nullptr;
 	}
-	FMyOctreeNode(FBox Bounds, FMyOctreeNode* Parent);
+	FMyOctreeNode(FBox Bounds, FMyOctreeNode* Parent, int Depth);
 
 	~FMyOctreeNode() {
 
