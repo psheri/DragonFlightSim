@@ -12,14 +12,18 @@ UCLASS()
 class DRAGONFLIGHTSIM_API AFlightPathfinder : public AActor
 {
 	GENERATED_BODY()
-
-public:	
 	FMyOctree MyOctree;
 	FAStar AStar;
+public:	
+
 	virtual void DrawPath(TArray<FVector>& Points);
 	// Sets default values for this actor's properties
 	AFlightPathfinder();
 
+	FAStar* GetAStarGraph() { return &AStar; }
+
+	TArray<FAStarNode*> FindPath(FVector StartPos, FVector EndPos);
+	TArray<FAStarNode*> FindRandomPath();
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -30,5 +34,6 @@ public:
 
 	virtual void DrawBBox(const FBox& BBox, float Thickness = 0, FColor Color = FColor::Emerald, bool bIsSolid = false);
 	virtual void DrawOctree(FMyOctreeNode* CurrentNode);
+	virtual void DrawFlightPath(TArray<FAStarNode*> Path);
 
 };

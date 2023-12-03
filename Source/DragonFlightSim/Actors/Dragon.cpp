@@ -1,5 +1,9 @@
 #include "Dragon.h"
 #include "../Utils/LogHelper.h"
+#include <Kismet/GameplayStatics.h>
+#include "../FlightPathfinder.h"
+
+
 
 // Sets default values
 ADragon::ADragon()
@@ -9,38 +13,36 @@ ADragon::ADragon()
 
 }
 
-FVector InitialWorldPos;
-FVector Velocity = { 100, 0, 0 };
-float MaxMoveDistance = 200;
+AFlightPathfinder* FlightPathfinder;
 // Called when the game starts or when spawned
 void ADragon::BeginPlay()
 {
 	Super::BeginPlay();
-	InitialWorldPos = this->GetActorLocation();
-	
+
+	AActor* ActorFlightPathfinder = UGameplayStatics::GetActorOfClass(this->GetWorld(), AFlightPathfinder::StaticClass());
+	if (ActorFlightPathfinder != nullptr) {
+		FlightPathfinder = Cast<AFlightPathfinder>(ActorFlightPathfinder);
+		LogMain << "Got the FlightPathfinder ref";
+		Navigate();
+	}
 }
 
+
+void ADragon::Navigate() {
+	if (FlightPathfinder->GetAStarGraph() == nullptr || FlightPathfinder->GetAStarGraph()->Nodes.Num() == 0) {
+		return;
+	}
+
+}
 
 // Called every frame
 void ADragon::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	FVector displacement = Velocity * DeltaTime;
-
-	FVector newWorldPos = GetActorLocation() + displacement;
-
-	SetActorLocation(newWorldPos);
-
-	float distanceMoved = FVector::Dist(InitialWorldPos, newWorldPos);
-
-	if (distanceMoved > MaxMoveDistance) {
-		InitialWorldPos = InitialWorldPos + Velocity.GetSafeNormal() * MaxMoveDistance;	//prevent overshooting
-		SetActorLocation(InitialWorldPos);
-		Velocity *= -1;
-
-		LogMain << "change direction: " << Velocity.X;
-	}
+	TArray<FAStarNode*> Path = FlightPathfinder->FindRandomPath();
+	LogMain << "Found random path with length " << FlightPathfinder->FindRandomPath().Num();
+	FlightPathfinder->DrawFlightPath(Path);
 
 }
 

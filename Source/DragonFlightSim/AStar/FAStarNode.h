@@ -19,6 +19,15 @@ public:
 
 	FMyOctreeNode* OctreeNode;
 
+	float F;
+	float G;
+	float H;
+
+	// store the node we came from during pathfinding
+	FAStarNode* CameFrom;
+
+
+
 	FAStarNode(FMyOctreeNode* OctreeNode) {
 		this->OctreeNode = OctreeNode;
 	}

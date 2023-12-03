@@ -17,7 +17,6 @@ public:
 	int EdgeCount = 0;
 	TArray<FAStarEdge*> Edges;
 	TArray<FAStarNode*> Nodes;
-	TArray<FAStarNode*> PathList;
 
 	~FAStar();
 	FAStar();
@@ -28,9 +27,9 @@ public:
 
 	FAStarNode* FindNode(uint32_t OctreeNodeID);
 
-	int GetPathLength();
+	bool FindPath(FMyOctreeNode* Start, FMyOctreeNode* End, TArray<FAStarNode*>& OutPath);
 
-	FMyOctreeNode* GetPathPoint(int i);
+	FAStarNode* FindLowestF(TArray<FAStarNode*>& OpenList, int &OutIndex);
 
-	bool FindPath(FMyOctreeNode* Start, FMyOctreeNode* End);
+	void ReconstructPath(FAStarNode* A, FAStarNode* B, TArray<FAStarNode*>& OutPath);
 };

@@ -32,6 +32,27 @@ AFlightPathfinder::AFlightPathfinder()
 
 }
 
+TArray<FAStarNode*> AFlightPathfinder::FindPath(FVector StartPos, FVector EndPos)
+{
+	return TArray<FAStarNode*>();
+}
+
+TArray<FAStarNode*> AFlightPathfinder::FindRandomPath()
+{
+	int StartIndex = FMath::RandRange(0, AStar.Nodes.Num()-1);
+	int EndIndex = FMath::RandRange(0, AStar.Nodes.Num() - 1);
+	//LogMain << "StartIndex = " << StartIndex << ", EndIndex = " << EndIndex;
+
+	FAStarNode* Start = AStar.Nodes[StartIndex];
+	FAStarNode* End = AStar.Nodes[EndIndex];
+
+	TArray<FAStarNode*> OutPath;
+
+	bool result = AStar.FindPath(Start->OctreeNode, End->OctreeNode, OutPath);
+
+	return OutPath;
+}
+
 // Called when the game starts or when spawned
 void AFlightPathfinder::BeginPlay()
 {
@@ -69,12 +90,28 @@ void AFlightPathfinder::DrawOctree(FMyOctreeNode* CurrentNode) {
 	}
 }
 
+void AFlightPathfinder::DrawFlightPath(TArray<FAStarNode*> Path)
+{
+	for (int i = 0; i < Path.Num()-1; i++) {
+		DrawDebugLine(
+			GetWorld(),
+			Path[i]->OctreeNode->Bounds.GetCenter(),
+			Path[i+1]->OctreeNode->Bounds.GetCenter(),
+			FColor::Yellow,
+			false, 
+			0.25,
+			0,
+			10.f  // Thickness of the line
+		);
+	}
+}
+
 // Called every frame
 void AFlightPathfinder::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	//return;
+	DrawBBox(this->MyOctree.WorldBounds, 100);
+	return;
 
 	for (int i = 0; i < 20; ++i) {
 		//test drawing some lines
@@ -89,7 +126,7 @@ void AFlightPathfinder::Tick(float DeltaTime)
 		DrawPath(Points);
 	}
 	
-	DrawBBox(this->MyOctree.WorldBounds, 10);
+	
 	//DrawOctree(this->MyOctree.Root);
 	
 	for (int i = 0; i < AStar.Edges.Num(); i++) {
