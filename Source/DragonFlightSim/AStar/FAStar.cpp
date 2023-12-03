@@ -5,6 +5,16 @@
 
 FAStar::~FAStar()
 {
+	LogMain << "FAStar destructor called";
+	for (int i = 0; i < Nodes.Num(); ++i) {
+		delete Nodes[i];
+		Nodes[i] = nullptr;
+	}
+
+	for (int i = 0; i < Edges.Num(); ++i) {
+		delete Edges[i];
+		Edges[i] = nullptr;
+	}
 }
 
 FAStar::FAStar() {
@@ -60,9 +70,6 @@ bool FAStar::FindPath(FMyOctreeNode* Start, FMyOctreeNode* End, TArray<FAStarNod
 		// could find the closest neighbor and start from there
 		return false;
 	}
-
-
-
 
 	TArray<FAStarNode*> OpenList;
 	TArray<FAStarNode*> ClosedList;
