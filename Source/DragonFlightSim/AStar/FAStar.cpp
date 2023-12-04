@@ -27,21 +27,32 @@ void FAStar::AddNode(FMyOctreeNode* OctreeNode) {
 	}
 }
 
-void FAStar::AddEdge(FMyOctreeNode* StartNode, FMyOctreeNode* EndNode) {
-	EdgeCount++;
+void FAStar::AddEdge(FMyOctreeNode* StartNode, FMyOctreeNode* EndNode)
+{
 	FAStarNode* Start = FindNode(StartNode->ID);
 	FAStarNode* End = FindNode(EndNode->ID);
 
-	if (Start != nullptr && End != nullptr) {
-		// bidirectional edges
-		FAStarEdge* Dir1 = new FAStarEdge(Start, End);
-		FAStarEdge* Dir2 = new FAStarEdge(End, Start);
+	if (Start != nullptr && End != nullptr)
+	{
+		// check for duplicate edge
+		FUint32Point EdgePair(StartNode->ID, EndNode->ID);
+		// check both directions
+		if (!UniqueEdgePairs.Contains(EdgePair) && !UniqueEdgePairs.Contains(FUint32Point(EdgePair.Y, EdgePair.X)))
+		{
+			// bidirectional edges
+			FAStarEdge* Dir1 = new FAStarEdge(Start, End);
+			FAStarEdge* Dir2 = new FAStarEdge(End, Start);
 
-		Edges.Add(Dir1);
-		Edges.Add(Dir2);
-		Start->EdgeList.Add(Dir1);
-		End->EdgeList.Add(Dir2);
+			Edges.Add(Dir1);
+			Edges.Add(Dir2);
+			Start->EdgeList.Add(Dir1);
+			End->EdgeList.Add(Dir2);
 
+			UniqueEdgePairs.Add(EdgePair);
+			UniqueEdgePairs.Add(FUint32Point(EdgePair.Y, EdgePair.X));
+
+			EdgeCount += 2;
+		}
 	}
 }
 
