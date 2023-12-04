@@ -16,6 +16,8 @@
 
 class DRAGONFLIGHTSIM_API FMyOctree
 {
+	// increase by 1 every time a node is inserted
+	uint32_t OCTREE_NODE_ID = 0;	
 public:
 	
     int MaxRecordedDepth = 0;

@@ -21,7 +21,7 @@ public:
 	bool IsLeaf() {
 		return this->Children == nullptr;
 	}
-	FMyOctreeNode(FBox Bounds, FMyOctreeNode* Parent, int Depth);
+	FMyOctreeNode(FBox Bounds, FMyOctreeNode* Parent, int Depth, uint32_t &OCTREE_NODE_ID);
 
 	~FMyOctreeNode() {
 

@@ -38,7 +38,7 @@ FMyOctree::FMyOctree(TArray<AActor*>& Obstacles, FAStar* AStar)
 
 void FMyOctree::Build()
 {
-	this->Root = new FMyOctreeNode(WorldBounds, nullptr, 0);
+	this->Root = new FMyOctreeNode(WorldBounds, nullptr, 0, OCTREE_NODE_ID);
 
 	for (AActor* Obstacle : this->Obstacles) {
 		this->Insert(Obstacle);
@@ -117,7 +117,7 @@ void FMyOctree::DivideAndInsert(FMyOctreeNode* CurrentNode, AActor* Obstacle, in
 	LogMain << "Depth: " << Depth;
 	for (int i = 0; i < 8; ++i) {
 		if (CurrentNode->Children[i] == nullptr) {
-			CurrentNode->Children[i] = new FMyOctreeNode(CurrentNode->ChildBounds[i], CurrentNode, Depth);
+			CurrentNode->Children[i] = new FMyOctreeNode(CurrentNode->ChildBounds[i], CurrentNode, Depth, OCTREE_NODE_ID);
 		}
 		// if obstacle's bbox intersects with the current octant, push it down the tree and subdivide further
 		if (CurrentNode->ChildBounds[i].Intersect(Obstacle->GetComponentByClass<UStaticMeshComponent>()->Bounds.GetBox())) {
