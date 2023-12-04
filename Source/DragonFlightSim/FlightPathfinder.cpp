@@ -39,16 +39,13 @@ TArray<FAStarNode*> AFlightPathfinder::FindPath(FVector StartPos, FVector EndPos
 
 TArray<FAStarNode*> AFlightPathfinder::FindRandomPath()
 {
-	int StartIndex = FMath::RandRange(0, AStar.Nodes.Num()-1);
-	int EndIndex = FMath::RandRange(0, AStar.Nodes.Num() - 1);
-	//LogMain << "StartIndex = " << StartIndex << ", EndIndex = " << EndIndex;
-
-	FAStarNode* Start = AStar.Nodes[StartIndex];
-	FAStarNode* End = AStar.Nodes[EndIndex];
-
 	TArray<FAStarNode*> OutPath;
 
-	bool result = AStar.FindPath(Start->OctreeNode, End->OctreeNode, OutPath);
+	int StartIndex = FMath::RandRange(0, MyOctree.LeafNodes.Num()-1);
+	int EndIndex = FMath::RandRange(0, MyOctree.LeafNodes.Num() - 1);
+	//LogMain << "StartIndex = " << StartIndex << ", EndIndex = " << EndIndex;
+
+	bool result = AStar.FindPath(MyOctree.LeafNodes[StartIndex], MyOctree.LeafNodes[EndIndex], OutPath);
 
 	return OutPath;
 }
@@ -124,7 +121,7 @@ void AFlightPathfinder::Tick(float DeltaTime)
 		FMyOctreeNode* DragonNode = MyOctree.GetNodeAtPosition(Dragon->GetActorLocation());
 		if (DragonNode != nullptr) {
 			//FColor solidColor = FColor(0, 0, 255, 32);
-			DrawBBox(DragonNode->Bounds, 0, FColor::Orange, true);
+			DrawBBox(DragonNode->Bounds, 0, FColor::Black, true);
 
 			TArray<FMyOctreeNode*> FaceNeighbors = MyOctree.GetFaceNeighbors(DragonNode);
 			//LogMain << "FaceNeighbors length = " << FaceNeighbors.Num();
@@ -162,9 +159,10 @@ void AFlightPathfinder::Tick(float DeltaTime)
 	
 
 	//LogMain << "@AStar  Nodes.Num() = " << Nodes.Num();
-	for (int i = 0; i < AStar.Nodes.Num(); i++) {
+	for (auto& Elem : AStar.Nodes) {
+		FAStarNode* Node = Elem.Value;
 		DrawDebugSphere(GetWorld(),
-			AStar.Nodes[i]->OctreeNode->Bounds.GetCenter(),
+			Node->OctreeNode->Bounds.GetCenter(),
 			64,	//radius
 			8, //segments
 			FColor::Blue

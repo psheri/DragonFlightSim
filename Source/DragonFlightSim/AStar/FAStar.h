@@ -16,7 +16,10 @@ class DRAGONFLIGHTSIM_API FAStar
 public:
 	int EdgeCount = 0;
 	TArray<FAStarEdge*> Edges;
-	TArray<FAStarNode*> Nodes;
+
+	// maps FMyOctreeNode::ID to FAStarNode.
+	TMap<uint32_t, FAStarNode*> Nodes;	
+
 	TSet<FUint32Point> UniqueEdgePairs;	// prevent adding duplicate edges
 
 	~FAStar();

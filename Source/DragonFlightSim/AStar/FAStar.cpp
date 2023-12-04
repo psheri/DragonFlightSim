@@ -6,9 +6,9 @@
 FAStar::~FAStar()
 {
 	LogMain << "FAStar destructor called";
-	for (int i = 0; i < Nodes.Num(); ++i) {
-		delete Nodes[i];
-		Nodes[i] = nullptr;
+	for (auto& Elem : Nodes) {
+		delete Elem.Value;
+		Elem.Value = nullptr;
 	}
 
 	for (int i = 0; i < Edges.Num(); ++i) {
@@ -22,8 +22,8 @@ FAStar::FAStar() {
 }
 
 void FAStar::AddNode(FMyOctreeNode* OctreeNode) {
-	if (FindNode(OctreeNode->ID) == nullptr) {
-		Nodes.Add(new FAStarNode(OctreeNode));
+	if (OctreeNode != nullptr && FindNode(OctreeNode->ID) == nullptr) {
+		Nodes.Add(OctreeNode->ID, new FAStarNode(OctreeNode));
 	}
 }
 
@@ -57,13 +57,11 @@ void FAStar::AddEdge(FMyOctreeNode* StartNode, FMyOctreeNode* EndNode)
 }
 
 FAStarNode* FAStar::FindNode(uint32_t OctreeNodeID) {
-	// later: use a hashmap for fast retrieval
-	for (auto& Node : Nodes) {
-		if (Node->GetNode()->ID == OctreeNodeID) {
-			return Node;
-		}
+	FAStarNode** Node = Nodes.Find(OctreeNodeID);
+	if (Node == nullptr || *Node == nullptr) {
+		return nullptr;
 	}
-	return nullptr;
+	return *Node;
 }
 
 // implement A* pathfinding
