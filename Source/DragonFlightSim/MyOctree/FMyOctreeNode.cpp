@@ -28,3 +28,9 @@ FMyOctreeNode::FMyOctreeNode(FBox Bounds, FMyOctreeNode* Parent, int Depth, uint
 		ChildBounds[i] = FBox(ChildMin, ChildMax);
 	}
 }
+
+inline FMyOctreeNode* FMyOctreeNode::GetChild(ChildIndex Index) {
+	if (Children == nullptr)
+		return nullptr;
+	return Children[Index];
+}

@@ -39,7 +39,7 @@ void ADragon::Navigate() {
 void ADragon::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
+	//return;
 	TArray<FAStarNode*> Path = FlightPathfinder->FindRandomPath();
 	LogMain << "Found random path with length " << FlightPathfinder->FindRandomPath().Num();
 	FlightPathfinder->DrawFlightPath(Path);

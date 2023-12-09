@@ -38,8 +38,15 @@ public:
     ~LogHelper()
     {
         #if ENABLE_DEBUG_TO_FILE
+        FDateTime DateNow = FDateTime::Now();
+        FTimespan Time = DateNow.GetTimeOfDay();
+        FString HH = FString::Printf(TEXT("%02d"), Time.GetHours());
+        FString MM = FString::Printf(TEXT("%02d"), Time.GetMinutes());
+        FString SS = FString::Printf(TEXT("%02d"), Time.GetSeconds());
+        FString TimeString = "[" + HH + TEXT(":") + MM + TEXT(":") + SS + "] ";
+
         FString FilePath = FPaths::Combine(FPaths::ProjectDir(), TEXT("debugOut.txt"));
-        FString Text = FString(MessageStream.str().c_str()) + LINE_TERMINATOR;
+        FString Text = TimeString + FString(MessageStream.str().c_str()) + LINE_TERMINATOR;
         FFileHelper::SaveStringToFile(Text, *FilePath, FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get(), FILEWRITE_Append);
         #endif
 

@@ -40,7 +40,8 @@ TArray<FAStarNode*> AFlightPathfinder::FindPath(FVector StartPos, FVector EndPos
 TArray<FAStarNode*> AFlightPathfinder::FindRandomPath()
 {
 	TArray<FAStarNode*> OutPath;
-
+	if (MyOctree.LeafNodes.Num() == 0)
+		return OutPath;
 	int StartIndex = FMath::RandRange(0, MyOctree.LeafNodes.Num()-1);
 	int EndIndex = FMath::RandRange(0, MyOctree.LeafNodes.Num() - 1);
 	//LogMain << "StartIndex = " << StartIndex << ", EndIndex = " << EndIndex;
@@ -75,7 +76,7 @@ void AFlightPathfinder::DrawOctree(FMyOctreeNode* CurrentNode) {
 
 	for (AActor* Obstacle : CurrentNode->ContainedActors) {
 		//LogMain << "Here";
-		DrawBBox(Obstacle->GetComponentByClass<UStaticMeshComponent>()->Bounds.GetBox(), 5, FColor::Magenta);
+		//DrawBBox(Obstacle->GetComponentByClass<UStaticMeshComponent>()->Bounds.GetBox(), 5, FColor::Magenta);
 	}
 
 	if (CurrentNode->Children != nullptr) {
@@ -104,7 +105,7 @@ void AFlightPathfinder::DrawFlightPath(TArray<FAStarNode*> Path)
 			false, 
 			0.25,
 			0,
-			30  // Thickness of the line
+			100  // Thickness of the line
 		);
 	}
 }
@@ -114,24 +115,34 @@ void AFlightPathfinder::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	DrawBBox(this->MyOctree.WorldBounds, 10);
-
+	
+	TArray<AActor*> Dragons;
+	UGameplayStatics::GetAllActorsWithTag(this->GetWorld(), FName("Dragon"), Dragons);
+	if (Dragons.Num() > 0)
+		Dragon = Dragons[0];
 	// later, add some uproperty bools to toggle draws from editor
-	if (Dragon != nullptr) {
+	if (Dragon != nullptr && Dragon->IsValidLowLevel()) {
 		FBox DragonBounds = Dragon->GetComponentByClass<UStaticMeshComponent>()->Bounds.GetBox();
-		FMyOctreeNode* DragonNode = MyOctree.GetNodeAtPosition(Dragon->GetActorLocation());
+		FVector DragonPos = Dragon->GetActorLocation();
+		FMyOctreeNode* DragonNode = MyOctree.GetNodeAtPosition(DragonPos);
 		if (DragonNode != nullptr) {
 			//FColor solidColor = FColor(0, 0, 255, 32);
 			DrawBBox(DragonNode->Bounds, 0, FColor::Black, true);
 
-			TArray<FMyOctreeNode*> FaceNeighbors = MyOctree.GetFaceNeighbors(DragonNode);
-			//LogMain << "FaceNeighbors length = " << FaceNeighbors.Num();
-			for (int i = 0; i < FaceNeighbors.Num(); i++) {
-				DrawBBox(FaceNeighbors[i]->Bounds, 0, FColor::Blue, true);
+			TArray<FMyOctreeNode*> Neighbours = MyOctree.GetNeighbours(DragonNode);
+			for (int i = 0; i < Neighbours.Num(); i++) {
+				DrawBBox(Neighbours[i]->Bounds, 100, FColor::Magenta, false);
 			}
 		}
 
 
 	}
+
+	//// color octree root children
+	//DrawBBox(MyOctree.Root->Children[4]->Bounds, 0, FColor::Red, true);
+	//DrawBBox(MyOctree.Root->Children[5]->Bounds, 0, FColor::Green, true);
+	//DrawBBox(MyOctree.Root->Children[6]->Bounds, 0, FColor::Blue, true);
+	//DrawBBox(MyOctree.Root->Children[7]->Bounds, 0, FColor::Yellow, true);
 
 	for (int i = 0; i < 20; ++i) {
 		//test drawing some lines
