@@ -403,7 +403,9 @@ FMyOctreeNode* FMyOctree::RGetNeighbourOfGreaterOrEqualSize(FMyOctreeNode* Node,
 			}
 			// current node == bottom-south-east child ? return top-south-east
 			if (Node->Parent->Children[ChildIndex::BSE] == Node) {
+				//LogMain << "@RGetNeighbourOfGreaterOrEqualSize: is leaf node = " << (Node->Parent->Children[ChildIndex::TSE]->IsEmptyLeaf() ? "true" : "false");
 				return Node->Parent->Children[ChildIndex::TSE];
+				//return nullptr;
 			}
 			// current node == bottom-north-east child ? return top-north-east
 			if (Node->Parent->Children[ChildIndex::BNE] == Node) {
@@ -544,9 +546,9 @@ TArray<FMyOctreeNode*> FMyOctree::FindNeighboursOfSmallerSize(FMyOctreeNode* Nod
 		}
 		case CardinalDir::UP: {
 			while (Candidates.Num() > 0) {
+				//LogMain << "Candidates.Num() = " << Candidates.Num() << ", Candidates[0]->IsEmptyLeaf() = " << Candidates[0]->IsEmptyLeaf();
 				if (Candidates[0]->IsEmptyLeaf()) {
 					Neighbours.Add(Candidates[0]);
-					return Neighbours;
 				}
 				else if (Candidates[0]->ContainedActors.Num() == 0) {
 					Candidates.Add(Candidates[0]->Children[ChildIndex::BSW]);
