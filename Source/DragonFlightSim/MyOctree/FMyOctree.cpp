@@ -370,22 +370,23 @@ FMyOctreeNode* FMyOctree::RGetNeighbourOfGreaterOrEqualSize(FMyOctreeNode* Node,
 			if (Node->Parent->Children[ChildIndex::BNE] == Node) {
 				return Node->Parent->Children[ChildIndex::BNW];
 			}
+
 			Node = RGetNeighbourOfGreaterOrEqualSize(Node->Parent, Direction);
 			if (Node == nullptr || Node->IsEmptyLeaf()) {
 				return Node;
 			}
 			// Node is guaranteed to be a west child
-			if (Node->Parent->Children[ChildIndex::TNW] == Node) {
-				return Node->Children[ChildIndex::TSW];
-			}
-			else if (Node->Parent->Children[ChildIndex::TNE] == Node) {
+			if (Node->Parent->Children[ChildIndex::TSW] == Node) {
 				return Node->Children[ChildIndex::TSE];
 			}
-			else if (Node->Parent->Children[ChildIndex::BNW] == Node) {
-				return Node->Children[ChildIndex::BSW];
+			else if (Node->Parent->Children[ChildIndex::TNW] == Node) {
+				return Node->Children[ChildIndex::TNE];
 			}
-			else if (Node->Parent->Children[ChildIndex::BNE] == Node) {
+			else if (Node->Parent->Children[ChildIndex::BSW] == Node) {
 				return Node->Children[ChildIndex::BSE];
+			}
+			else if (Node->Parent->Children[ChildIndex::BNW] == Node) {
+				return Node->Children[ChildIndex::BNE];
 			}
 			return nullptr;
 		}
