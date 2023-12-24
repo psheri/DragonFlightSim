@@ -12,14 +12,21 @@ class DRAGONFLIGHTSIM_API ADragon : public AActor
 	GENERATED_BODY()
 	
 public:	
-	float Speed = 50.0f;
-	float Accuracy = 100.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Navigation Params")
+	float Speed = 12000.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Navigation Params")
+	float Accuracy = 300.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Navigation Params")
 	float RotSpeed = 50.0f;
+
 	int CurrentWaypoint = 0;
 	
 	TArray<FAStarNode*> CurrentFlightPath;
 
-	void Navigate();
+	void Navigate(float DeltaTime);
 
 	ADragon();
 

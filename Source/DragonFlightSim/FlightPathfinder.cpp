@@ -4,7 +4,6 @@
 #include "FlightPathfinder.h"
 #include <Kismet/GameplayStatics.h>
 
-
 void AFlightPathfinder::DrawBBox(const FBox& BBox, float Thickness, FColor Color, bool bIsSolid)
 {
 	if (bIsSolid) {
@@ -37,7 +36,7 @@ TArray<FAStarNode*> AFlightPathfinder::FindPath(FVector StartPos, FVector EndPos
 	return TArray<FAStarNode*>();
 }
 
-TArray<FAStarNode*> AFlightPathfinder::FindRandomPath()
+TArray<FAStarNode*> AFlightPathfinder::FindRandomPath(const FVector* OverrideStartPos)
 {
 	TArray<FAStarNode*> OutPath;
 	if (MyOctree.LeafNodes.Num() == 0)
@@ -46,7 +45,17 @@ TArray<FAStarNode*> AFlightPathfinder::FindRandomPath()
 	int EndIndex = FMath::RandRange(0, MyOctree.LeafNodes.Num() - 1);
 	//LogMain << "StartIndex = " << StartIndex << ", EndIndex = " << EndIndex;
 
-	bool result = AStar.FindPath(MyOctree.LeafNodes[StartIndex], MyOctree.LeafNodes[EndIndex], OutPath);
+	FMyOctreeNode* StartNode = MyOctree.LeafNodes[StartIndex];
+	FMyOctreeNode* EndNode = MyOctree.LeafNodes[EndIndex];
+
+	if (OverrideStartPos != nullptr) {
+		StartNode = MyOctree.GetNodeAtPosition(*OverrideStartPos);
+		if (StartNode == nullptr || !StartNode->IsEmptyLeaf()) {
+			// need to look for closest neighbour leaf
+			LogMain << "@AFlightPathfinder::FindRandomPath: unhandled case; path will be empty.";
+		}
+	}
+	bool result = AStar.FindPath(StartNode, EndNode, OutPath);
 
 	return OutPath;
 }
@@ -60,7 +69,7 @@ void AFlightPathfinder::BeginPlay()
 	TArray<AActor*> Obstacles;
 	UGameplayStatics::GetAllActorsWithTag(this->GetWorld(), FName("Obstacle"), Obstacles);
 
-	this->MyOctree = FMyOctree(Obstacles, &AStar);
+	this->MyOctree = FMyOctree(Obstacles, &AStar, this->GetWorld());
 	this->MyOctree.Build();
 	//Destroy();
 
@@ -115,7 +124,7 @@ void AFlightPathfinder::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	DrawBBox(this->MyOctree.WorldBounds, 10);
-	
+	return;
 	TArray<AActor*> Dragons;
 	UGameplayStatics::GetAllActorsWithTag(this->GetWorld(), FName("Dragon"), Dragons);
 	if (Dragons.Num() > 0)
@@ -158,7 +167,7 @@ void AFlightPathfinder::Tick(float DeltaTime)
 	}
 	
 	
-	DrawOctree(this->MyOctree.Root);
+	//DrawOctree(this->MyOctree.Root);
 	
 	for (int i = 0; i < AStar.Edges.Num(); i++) {
 		DrawDebugLine(GetWorld(),

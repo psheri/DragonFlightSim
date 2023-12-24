@@ -23,16 +23,45 @@ void ADragon::BeginPlay()
 	if (ActorFlightPathfinder != nullptr) {
 		FlightPathfinder = Cast<AFlightPathfinder>(ActorFlightPathfinder);
 		LogMain << "Got the FlightPathfinder ref";
-		Navigate();
 	}
 }
 
 
-void ADragon::Navigate() {
+void ADragon::Navigate(float DeltaTime) {
 	if (FlightPathfinder->GetAStarGraph() == nullptr || FlightPathfinder->GetAStarGraph()->Nodes.Num() == 0) {
 		return;
 	}
 
+	// do we need to generate a new path?
+	if (this->CurrentWaypoint >= this->CurrentFlightPath.Num() || this->CurrentFlightPath.Num() == 0) {
+		FVector ActorLocation = this->GetActorLocation();
+		this->CurrentFlightPath = FlightPathfinder->FindRandomPath(&ActorLocation);
+		this->CurrentWaypoint = 0;
+		LogMain << "Generated a new path of length " << this->CurrentFlightPath.Num();
+	}
+
+	if (this->CurrentFlightPath.Num() == 0) {
+		LogMain << "xD";
+		return;
+	}
+
+	// do we need to increase the waypoint?
+	FVector Direction = this->CurrentFlightPath[this->CurrentWaypoint]->GetNode()->Bounds.GetCenter() - this->GetActorLocation();
+	float WaypointDistance = Direction.Length();
+
+	if (WaypointDistance <= this->Accuracy) {
+		this->CurrentWaypoint++;
+		LogMain << "Waypoint: [" << this->CurrentWaypoint << "/" << this->CurrentFlightPath.Num() << "]";
+		return;
+	}
+
+	// push the actor in the direction of the current waypoint
+	Direction.Normalize();
+	FRotator TargetRotation = Direction.Rotation();
+	FRotator TickRotation = FQuat::Slerp(GetActorRotation().Quaternion(), TargetRotation.Quaternion(), DeltaTime * RotSpeed).Rotator();
+	SetActorRotation(TickRotation);
+	FVector TickPosition = GetActorLocation() + GetActorForwardVector() * Speed * DeltaTime;
+	SetActorLocation(TickPosition);
 }
 
 // Called every frame
@@ -40,9 +69,11 @@ void ADragon::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	//return;
-	TArray<FAStarNode*> Path = FlightPathfinder->FindRandomPath();
-	LogMain << "Found random path with length " << FlightPathfinder->FindRandomPath().Num();
-	FlightPathfinder->DrawFlightPath(Path);
+	//TArray<FAStarNode*> Path = FlightPathfinder->FindRandomPath();
+	//LogMain << "Found random path with length " << FlightPathfinder->FindRandomPath().Num();
+
+	this->Navigate(DeltaTime);
+	FlightPathfinder->DrawFlightPath(this->CurrentFlightPath);
 
 }
 

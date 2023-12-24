@@ -23,7 +23,7 @@ public:
 	FAStar* GetAStarGraph() { return &AStar; }
 
 	TArray<FAStarNode*> FindPath(FVector StartPos, FVector EndPos);
-	TArray<FAStarNode*> FindRandomPath();
+	TArray<FAStarNode*> FindRandomPath(const FVector* OverrideStartPos = nullptr);
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

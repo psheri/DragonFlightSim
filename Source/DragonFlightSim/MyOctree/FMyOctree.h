@@ -10,7 +10,7 @@
  * 
  */
 
-#define MIN_NODE_DIMENSIONS 128
+#define MIN_NODE_DIMENSIONS 512
 
 
 class DRAGONFLIGHTSIM_API FMyOctree
@@ -19,6 +19,8 @@ class DRAGONFLIGHTSIM_API FMyOctree
 	uint32_t OCTREE_NODE_ID = 0;	
 public:
 	
+	UWorld* UWorldRef = nullptr;
+
     int MaxRecordedDepth = 0;
 
 	FBox WorldBounds;
@@ -31,7 +33,7 @@ public:
 
 	FAStar* AStar;
 
-	FMyOctree(TArray<AActor*>& Obstacles, FAStar* AStar);
+	FMyOctree(TArray<AActor*>& Obstacles, FAStar* AStar, UWorld* UWorldRef);
 
 	bool bIsBuilt = false;
 

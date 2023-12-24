@@ -2,9 +2,11 @@
 
 
 #include "FMyOctree.h"
+#include <Kismet/GameplayStatics.h>
 
-FMyOctree::FMyOctree(TArray<AActor*>& Obstacles, FAStar* AStar)
+FMyOctree::FMyOctree(TArray<AActor*>& Obstacles, FAStar* AStar, UWorld* UWorldRef)
 {
+	this->UWorldRef = UWorldRef;
 	this->AStar = AStar;
 	// we want to make a cube that encompasses all obstacle bounds
 	FVector Min = { FLT_MAX,  FLT_MAX,  FLT_MAX };
@@ -92,14 +94,41 @@ FMyOctree::FMyOctree()
 
 void FMyOctree::LinkLeafNeighbours()
 {
+	TArray<AActor*> Dragons;
+	UGameplayStatics::GetAllActorsWithTag(this->UWorldRef, FName("Dragon"), Dragons);
+	AActor* Dragon = nullptr;
+
+	FCollisionQueryParams CollisionParams;
+	if (Dragons.Num() > 0) {
+		Dragon = Dragons[0];
+		CollisionParams.AddIgnoredActor(Dragon);
+	}
+
+
 	for (int i = 0; i < LeafNodes.Num(); ++i) {
 		TArray<FMyOctreeNode*> Neighbours = GetNeighbours(LeafNodes[i]);
 
 		if (Neighbours.Num() > 0)
 			LogMain << "linked face neighbours: " << Neighbours.Num();
 		for (FMyOctreeNode* CurrentNeighbour : Neighbours) {
-			if (CurrentNeighbour->IsEmptyLeaf())
-				AStar->AddEdge(LeafNodes[i], CurrentNeighbour);
+			if (CurrentNeighbour->IsEmptyLeaf()) {
+				// don't bother checking ray if same parent
+				if (CurrentNeighbour->Parent == LeafNodes[i]->Parent) {
+					AStar->AddEdge(LeafNodes[i], CurrentNeighbour);
+					continue;
+				}
+				FHitResult HitResult;
+				bool bHit = this->UWorldRef->LineTraceSingleByChannel(
+					HitResult, 
+					LeafNodes[i]->Bounds.GetCenter(),
+					CurrentNeighbour->Bounds.GetCenter(),
+					ECC_Visibility, 
+					CollisionParams
+				);
+				if (!bHit) {
+					AStar->AddEdge(LeafNodes[i], CurrentNeighbour);
+				}
+			}
 		}
 	}
 }

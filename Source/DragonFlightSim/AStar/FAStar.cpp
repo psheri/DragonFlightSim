@@ -70,15 +70,13 @@ bool FAStar::FindPath(FMyOctreeNode* Start, FMyOctreeNode* End, TArray<FAStarNod
 	if (Start == End) {
 		return false;
 	}
-
-	FAStarNode* A = FindNode(Start->ID);
-	FAStarNode* B = FindNode(End->ID);
-
-	if (A == nullptr || B == nullptr) {
+	if (Start == nullptr || End == nullptr) {
 		// to do: handle case where start or end are obstructed
 		// could find the closest neighbor and start from there
 		return false;
 	}
+	FAStarNode* A = FindNode(Start->ID);
+	FAStarNode* B = FindNode(End->ID);
 
 	TPriorityQueue<FAStarNode*> OpenList;
 	TSet<FAStarNode*> OpenListSet;
@@ -100,7 +98,7 @@ bool FAStar::FindPath(FMyOctreeNode* Start, FMyOctreeNode* End, TArray<FAStarNod
 
 		if (Current == B) {
 			// we found the path
-			LogMain << "closedList size = " << ClosedList.Num();
+			//LogMain << "closedList size = " << ClosedList.Num();
 			ReconstructPath(A, B, OutPath);
 			return true;
 		}
