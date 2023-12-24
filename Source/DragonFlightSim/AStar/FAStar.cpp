@@ -2,6 +2,7 @@
 
 
 #include "FAStar.h"
+#include "../Utils/TPriorityQueue.h"
 
 FAStar::~FAStar()
 {
@@ -64,8 +65,7 @@ FAStarNode* FAStar::FindNode(uint32_t OctreeNodeID) {
 	return *Node;
 }
 
-// implement A* pathfinding
-// to do: optimize
+// to do: implement heuristics that reduce the amount of nodes searched & bias the search to larger nodes.
 bool FAStar::FindPath(FMyOctreeNode* Start, FMyOctreeNode* End, TArray<FAStarNode*>& OutPath) {
 	if (Start == End) {
 		return false;
@@ -80,30 +80,31 @@ bool FAStar::FindPath(FMyOctreeNode* Start, FMyOctreeNode* End, TArray<FAStarNod
 		return false;
 	}
 
-	TArray<FAStarNode*> OpenList;
-	TArray<FAStarNode*> ClosedList;
+	TPriorityQueue<FAStarNode*> OpenList;
+	TSet<FAStarNode*> OpenListSet;
+	TSet<FAStarNode*> ClosedList;
+
 	float TempG = 0;
 	bool bIsTempBetter = false;
-	// G = movement cost
-	// H = heuristic cost
-	// F = G + H
-	A->G = 0; 
+
+	A->G = 0;
 	A->H = (Start->Bounds.GetCenter() - End->Bounds.GetCenter()).SquaredLength();
 	A->F = A->H;
-	
-	OpenList.Add(A);
 
-	while (OpenList.Num() > 0) {
-		int OutIndex = -1;
-		FAStarNode* Current = FindLowestF(OpenList, OutIndex);
+	OpenList.Push(A, A->F);
+	OpenListSet.Add(A);
+
+	while (!OpenList.IsEmpty()) {
+		FAStarNode* Current = OpenList.Pop();
+		OpenListSet.Remove(Current);
 
 		if (Current == B) {
-			//we found the path
+			// we found the path
+			LogMain << "closedList size = " << ClosedList.Num();
 			ReconstructPath(A, B, OutPath);
 			return true;
 		}
 
-		OpenList.RemoveAt(OutIndex);
 		ClosedList.Add(Current);
 
 		FAStarNode* Neighbor;
@@ -114,10 +115,11 @@ bool FAStar::FindPath(FMyOctreeNode* Start, FMyOctreeNode* End, TArray<FAStarNod
 			if (ClosedList.Contains(Neighbor)) {
 				continue;
 			}
-	
+
 			TempG = Current->G + (Current->OctreeNode->Bounds.GetCenter() - Neighbor->OctreeNode->Bounds.GetCenter()).SquaredLength();
-			if (!OpenList.Contains(Neighbor)) {
-				OpenList.Add(Neighbor);
+			if (!OpenListSet.Contains(Neighbor)) {
+				OpenList.Push(Neighbor, Neighbor->F);
+				OpenListSet.Add(Neighbor);
 				bIsTempBetter = true;
 			}
 			else if (TempG < Neighbor->G) {
@@ -133,36 +135,9 @@ bool FAStar::FindPath(FMyOctreeNode* Start, FMyOctreeNode* End, TArray<FAStarNod
 				Neighbor->H = (Current->OctreeNode->Bounds.GetCenter() - End->Bounds.GetCenter()).SquaredLength();
 				Neighbor->F = Neighbor->G + Neighbor->H;
 			}
-
 		}
-		
-
 	}
-
 	return false;
-}
-
-FAStarNode* FAStar::FindLowestF(TArray<FAStarNode*>& OpenList, int &OutIndex) {
-	float LowestF = 0;
-	int Count = 0;
-	int IteratorCount = 0;
-
-	if (OpenList.Num() == 0) {
-		return nullptr;
-	}
-
-	for (int i = 0; i < OpenList.Num(); i++, Count++) {
-		if (i == 0) {
-			LowestF = OpenList[i]->F;
-			IteratorCount = 0;
-		}
-		else if (OpenList[i]->F <= LowestF) {
-			LowestF = OpenList[i]->F;
-			IteratorCount = Count;
-		}
-	}
-	OutIndex = IteratorCount;
-	return OpenList[IteratorCount];
 }
 
 void FAStar::ReconstructPath(FAStarNode* A, FAStarNode* B, TArray<FAStarNode*>& OutPath)

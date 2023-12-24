@@ -33,7 +33,5 @@ public:
 
 	bool FindPath(FMyOctreeNode* Start, FMyOctreeNode* End, TArray<FAStarNode*>& OutPath);
 
-	FAStarNode* FindLowestF(TArray<FAStarNode*>& OpenList, int &OutIndex);
-
 	void ReconstructPath(FAStarNode* A, FAStarNode* B, TArray<FAStarNode*>& OutPath);
 };
