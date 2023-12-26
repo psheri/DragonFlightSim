@@ -12,6 +12,8 @@ class DRAGONFLIGHTSIM_API ADragon : public AActor
 	GENERATED_BODY()
 	
 public:	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Config")
+	bool bShouldFly = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Navigation Params")
 	float Speed = 12000.0f;

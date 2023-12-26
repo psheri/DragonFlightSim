@@ -2,11 +2,9 @@
 
 
 #include "FMyOctree.h"
-#include <Kismet/GameplayStatics.h>
 
-FMyOctree::FMyOctree(TArray<AActor*>& Obstacles, FAStar* AStar, UWorld* UWorldRef)
+FMyOctree::FMyOctree(TArray<AActor*>& Obstacles, FAStar* AStar)
 {
-	this->UWorldRef = UWorldRef;
 	this->AStar = AStar;
 	// we want to make a cube that encompasses all obstacle bounds
 	FVector Min = { FLT_MAX,  FLT_MAX,  FLT_MAX };
@@ -94,17 +92,6 @@ FMyOctree::FMyOctree()
 
 void FMyOctree::LinkLeafNeighbours()
 {
-	TArray<AActor*> Dragons;
-	UGameplayStatics::GetAllActorsWithTag(this->UWorldRef, FName("Dragon"), Dragons);
-	AActor* Dragon = nullptr;
-
-	FCollisionQueryParams CollisionParams;
-	if (Dragons.Num() > 0) {
-		Dragon = Dragons[0];
-		CollisionParams.AddIgnoredActor(Dragon);
-	}
-
-
 	for (int i = 0; i < LeafNodes.Num(); ++i) {
 		TArray<FMyOctreeNode*> Neighbours = GetNeighbours(LeafNodes[i]);
 
@@ -112,22 +99,7 @@ void FMyOctree::LinkLeafNeighbours()
 			LogMain << "linked face neighbours: " << Neighbours.Num();
 		for (FMyOctreeNode* CurrentNeighbour : Neighbours) {
 			if (CurrentNeighbour->IsEmptyLeaf()) {
-				// don't bother checking ray if same parent
-				if (CurrentNeighbour->Parent == LeafNodes[i]->Parent) {
-					AStar->AddEdge(LeafNodes[i], CurrentNeighbour);
-					continue;
-				}
-				FHitResult HitResult;
-				bool bHit = this->UWorldRef->LineTraceSingleByChannel(
-					HitResult, 
-					LeafNodes[i]->Bounds.GetCenter(),
-					CurrentNeighbour->Bounds.GetCenter(),
-					ECC_Visibility, 
-					CollisionParams
-				);
-				if (!bHit) {
-					AStar->AddEdge(LeafNodes[i], CurrentNeighbour);
-				}
+				AStar->AddEdge(LeafNodes[i], CurrentNeighbour);
 			}
 		}
 	}
@@ -282,22 +254,22 @@ FMyOctreeNode* FMyOctree::RGetNeighbourOfGreaterOrEqualSize(FMyOctreeNode* Node,
 			if (Node->Parent->Children[ChildIndex::BSE] == Node) {
 				return Node->Parent->Children[ChildIndex::BNE];
 			}
-			Node = RGetNeighbourOfGreaterOrEqualSize(Node->Parent, Direction);
-			if (Node == nullptr || Node->IsEmptyLeaf()) {
-				return Node;
+			FMyOctreeNode* Neighbour = RGetNeighbourOfGreaterOrEqualSize(Node->Parent, Direction);
+			if (Neighbour == nullptr || Neighbour->IsEmptyLeaf()) {
+				return Neighbour;
 			}
-			// Node is guaranteed to be a north child
+			// Neighbour is guaranteed to be a north child
 			if (Node->Parent->Children[ChildIndex::TNW] == Node) {
-				return Node->Children[ChildIndex::TSW];
+				return Neighbour->Children[ChildIndex::TSW];
 			}
 			else if (Node->Parent->Children[ChildIndex::TNE] == Node) {
-				return Node->Children[ChildIndex::TSE];
+				return Neighbour->Children[ChildIndex::TSE];
 			}
 			else if (Node->Parent->Children[ChildIndex::BNW] == Node) {
-				return Node->Children[ChildIndex::BSW];
+				return Neighbour->Children[ChildIndex::BSW];
 			}
 			else if (Node->Parent->Children[ChildIndex::BNE] == Node) {
-				return Node->Children[ChildIndex::BSE];
+				return Neighbour->Children[ChildIndex::BSE];
 			}
 			return nullptr;
 		}
@@ -321,22 +293,22 @@ FMyOctreeNode* FMyOctree::RGetNeighbourOfGreaterOrEqualSize(FMyOctreeNode* Node,
 			if (Node->Parent->Children[ChildIndex::BNE] == Node) {
 				return Node->Parent->Children[ChildIndex::BSE];
 			}
-			Node = RGetNeighbourOfGreaterOrEqualSize(Node->Parent, Direction);
-			if (Node == nullptr || Node->IsEmptyLeaf()) {
-				return Node;
+			FMyOctreeNode* Neighbour = RGetNeighbourOfGreaterOrEqualSize(Node->Parent, Direction);
+			if (Neighbour == nullptr || Neighbour->IsEmptyLeaf()) {
+				return Neighbour;
 			}
-			// Node is guaranteed to be a south child
+			// Neighbour is guaranteed to be a south child
 			if (Node->Parent->Children[ChildIndex::TSW] == Node) {
-				return Node->Children[ChildIndex::TNW];
+				return Neighbour->Children[ChildIndex::TNW];
 			}
 			else if (Node->Parent->Children[ChildIndex::TSE] == Node) {
-				return Node->Children[ChildIndex::TNE];
+				return Neighbour->Children[ChildIndex::TNE];
 			}
 			else if (Node->Parent->Children[ChildIndex::BSW] == Node) {
-				return Node->Children[ChildIndex::BNW];
+				return Neighbour->Children[ChildIndex::BNW];
 			}
 			else if (Node->Parent->Children[ChildIndex::BSE] == Node) {
-				return Node->Children[ChildIndex::BNE];
+				return Neighbour->Children[ChildIndex::BNE];
 			}
 			return nullptr;
 		}
@@ -360,22 +332,23 @@ FMyOctreeNode* FMyOctree::RGetNeighbourOfGreaterOrEqualSize(FMyOctreeNode* Node,
 			if (Node->Parent->Children[ChildIndex::BNW] == Node) {
 				return Node->Parent->Children[ChildIndex::BNE];
 			}
-			Node = RGetNeighbourOfGreaterOrEqualSize(Node->Parent, Direction);
-			if (Node == nullptr || Node->IsEmptyLeaf()) {
-				return Node;
+
+			FMyOctreeNode* Neighbour = RGetNeighbourOfGreaterOrEqualSize(Node->Parent, Direction);
+			if (Neighbour == nullptr || Neighbour->IsEmptyLeaf()) {
+				return Neighbour;
 			}
-			// Node is guaranteed to be an east child
+			// Neighbour is guaranteed to be an east child
 			if (Node->Parent->Children[ChildIndex::TSE] == Node) {
-				return Node->Children[ChildIndex::TSW];
+				return Neighbour->Children[ChildIndex::TSW];
 			}
 			else if (Node->Parent->Children[ChildIndex::TNE] == Node) {
-				return Node->Children[ChildIndex::TNW];
+				return Neighbour->Children[ChildIndex::TNW];
 			}
 			else if (Node->Parent->Children[ChildIndex::BSE] == Node) {
-				return Node->Children[ChildIndex::BSW];
+				return Neighbour->Children[ChildIndex::BSW];
 			}
 			else if (Node->Parent->Children[ChildIndex::BNE] == Node) {
-				return Node->Children[ChildIndex::BNW];
+				return Neighbour->Children[ChildIndex::BNW];
 			}
 			return nullptr;
 		}
@@ -399,23 +372,22 @@ FMyOctreeNode* FMyOctree::RGetNeighbourOfGreaterOrEqualSize(FMyOctreeNode* Node,
 			if (Node->Parent->Children[ChildIndex::BNE] == Node) {
 				return Node->Parent->Children[ChildIndex::BNW];
 			}
-
-			Node = RGetNeighbourOfGreaterOrEqualSize(Node->Parent, Direction);
-			if (Node == nullptr || Node->IsEmptyLeaf()) {
-				return Node;
+			FMyOctreeNode* Neighbour = RGetNeighbourOfGreaterOrEqualSize(Node->Parent, Direction);
+			if (Neighbour == nullptr || Neighbour->IsEmptyLeaf()) {
+				return Neighbour;
 			}
-			// Node is guaranteed to be a west child
+			// Neighbour is guaranteed to be a west child
 			if (Node->Parent->Children[ChildIndex::TSW] == Node) {
-				return Node->Children[ChildIndex::TSE];
+				return Neighbour->Children[ChildIndex::TSE];
 			}
 			else if (Node->Parent->Children[ChildIndex::TNW] == Node) {
-				return Node->Children[ChildIndex::TNE];
+				return Neighbour->Children[ChildIndex::TNE];
 			}
 			else if (Node->Parent->Children[ChildIndex::BSW] == Node) {
-				return Node->Children[ChildIndex::BSE];
+				return Neighbour->Children[ChildIndex::BSE];
 			}
 			else if (Node->Parent->Children[ChildIndex::BNW] == Node) {
-				return Node->Children[ChildIndex::BNE];
+				return Neighbour->Children[ChildIndex::BNE];
 			}
 			return nullptr;
 		}
@@ -441,22 +413,22 @@ FMyOctreeNode* FMyOctree::RGetNeighbourOfGreaterOrEqualSize(FMyOctreeNode* Node,
 			if (Node->Parent->Children[ChildIndex::BNE] == Node) {
 				return Node->Parent->Children[ChildIndex::TNE];
 			}
-			Node = RGetNeighbourOfGreaterOrEqualSize(Node->Parent, Direction);
-			if (Node == nullptr || Node->IsEmptyLeaf()) {
-				return Node;
+			FMyOctreeNode* Neighbour = RGetNeighbourOfGreaterOrEqualSize(Node->Parent, Direction);
+			if (Neighbour == nullptr || Neighbour->IsEmptyLeaf()) {
+				return Neighbour;
 			}
-			// Node is guaranteed to be an up child
+			// Neighbour is guaranteed to be an up child
 			if (Node->Parent->Children[ChildIndex::TSW] == Node) {
-				return Node->Children[ChildIndex::BSW];
+				return Neighbour->Children[ChildIndex::BSW];
 			}
 			else if (Node->Parent->Children[ChildIndex::TNW] == Node) {
-				return Node->Children[ChildIndex::BNW];
+				return Neighbour->Children[ChildIndex::BNW];
 			}
 			else if (Node->Parent->Children[ChildIndex::TSE] == Node) {
-				return Node->Children[ChildIndex::BSE];
+				return Neighbour->Children[ChildIndex::BSE];
 			}
 			else if (Node->Parent->Children[ChildIndex::TNE] == Node) {
-				return Node->Children[ChildIndex::BNE];
+				return Neighbour->Children[ChildIndex::BNE];
 			}
 			return nullptr;
 		}
@@ -480,22 +452,22 @@ FMyOctreeNode* FMyOctree::RGetNeighbourOfGreaterOrEqualSize(FMyOctreeNode* Node,
 			if (Node->Parent->Children[ChildIndex::TNE] == Node) {
 				return Node->Parent->Children[ChildIndex::BNE];
 			}
-			Node = RGetNeighbourOfGreaterOrEqualSize(Node->Parent, Direction);
-			if (Node == nullptr || Node->IsEmptyLeaf()) {
-				return Node;
+			FMyOctreeNode* Neighbour = RGetNeighbourOfGreaterOrEqualSize(Node->Parent, Direction);
+			if (Neighbour == nullptr || Neighbour->IsEmptyLeaf()) {
+				return Neighbour;
 			}
-			// Node is guaranteed to be a down child
+			// Neighbour is guaranteed to be a down child
 			if (Node->Parent->Children[ChildIndex::BSW] == Node) {
-				return Node->Children[ChildIndex::TSW];
+				return Neighbour->Children[ChildIndex::TSW];
 			}
 			else if (Node->Parent->Children[ChildIndex::BNW] == Node) {
-				return Node->Children[ChildIndex::TNW];
+				return Neighbour->Children[ChildIndex::TNW];
 			}
 			else if (Node->Parent->Children[ChildIndex::BSE] == Node) {
-				return Node->Children[ChildIndex::TSE];
+				return Neighbour->Children[ChildIndex::TSE];
 			}
 			else if (Node->Parent->Children[ChildIndex::BNE] == Node) {
-				return Node->Children[ChildIndex::TNE];
+				return Neighbour->Children[ChildIndex::TNE];
 			}
 			return nullptr;
 		}

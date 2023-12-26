@@ -12,9 +12,21 @@ UCLASS()
 class DRAGONFLIGHTSIM_API AFlightPathfinder : public AActor
 {
 	GENERATED_BODY()
+
 	FMyOctree MyOctree;
 	FAStar AStar;
 public:	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug Draw")
+	bool bDrawOctree = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug Draw")
+	bool bDrawNodes = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug Draw")
+	bool bDrawEdges = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug Draw")
+	bool bDrawAgentNeighbours = false;
 
 	virtual void DrawPath(TArray<FVector>& Points);
 	// Sets default values for this actor's properties

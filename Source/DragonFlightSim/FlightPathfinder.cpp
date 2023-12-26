@@ -68,8 +68,8 @@ void AFlightPathfinder::BeginPlay()
 	//this->MyOctree.SetWorldBounds(this->min, this->max);
 	TArray<AActor*> Obstacles;
 	UGameplayStatics::GetAllActorsWithTag(this->GetWorld(), FName("Obstacle"), Obstacles);
-
-	this->MyOctree = FMyOctree(Obstacles, &AStar, this->GetWorld());
+	
+	this->MyOctree = FMyOctree(Obstacles, &AStar);
 	this->MyOctree.Build();
 	//Destroy();
 
@@ -123,28 +123,28 @@ void AFlightPathfinder::DrawFlightPath(TArray<FAStarNode*> Path)
 void AFlightPathfinder::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	DrawBBox(this->MyOctree.WorldBounds, 10);
-	return;
+	DrawBBox(this->MyOctree.WorldBounds, 500);
+
 	TArray<AActor*> Dragons;
 	UGameplayStatics::GetAllActorsWithTag(this->GetWorld(), FName("Dragon"), Dragons);
 	if (Dragons.Num() > 0)
 		Dragon = Dragons[0];
-	// later, add some uproperty bools to toggle draws from editor
-	if (Dragon != nullptr && Dragon->IsValidLowLevel()) {
-		FBox DragonBounds = Dragon->GetComponentByClass<UStaticMeshComponent>()->Bounds.GetBox();
-		FVector DragonPos = Dragon->GetActorLocation();
-		FMyOctreeNode* DragonNode = MyOctree.GetNodeAtPosition(DragonPos);
-		if (DragonNode != nullptr) {
-			//FColor solidColor = FColor(0, 0, 255, 32);
-			DrawBBox(DragonNode->Bounds, 0, FColor::Black, true);
+	
+	if (this->bDrawAgentNeighbours) {
+		if (Dragon != nullptr && Dragon->IsValidLowLevel()) {
+			FBox DragonBounds = Dragon->GetComponentByClass<UStaticMeshComponent>()->Bounds.GetBox();
+			FVector DragonPos = Dragon->GetActorLocation();
+			FMyOctreeNode* DragonNode = MyOctree.GetNodeAtPosition(DragonPos);
+			if (DragonNode != nullptr) {
+				//FColor solidColor = FColor(0, 0, 255, 32);
+				DrawBBox(DragonNode->Bounds, 0, FColor::Black, true);
 
-			TArray<FMyOctreeNode*> Neighbours = MyOctree.GetNeighbours(DragonNode);
-			for (int i = 0; i < Neighbours.Num(); i++) {
-				DrawBBox(Neighbours[i]->Bounds, 100, FColor::Magenta, false);
+				TArray<FMyOctreeNode*> Neighbours = MyOctree.GetNeighbours(DragonNode);
+				for (int i = 0; i < Neighbours.Num(); i++) {
+					DrawBBox(Neighbours[i]->Bounds, 100, FColor::Magenta, false);
+				}
 			}
 		}
-
-
 	}
 
 	//// color octree root children
@@ -166,28 +166,32 @@ void AFlightPathfinder::Tick(float DeltaTime)
 		DrawPath(Points);
 	}
 	
-	
-	//DrawOctree(this->MyOctree.Root);
-	
-	for (int i = 0; i < AStar.Edges.Num(); i++) {
-		DrawDebugLine(GetWorld(),
-			AStar.Edges[i]->Start->OctreeNode->Bounds.GetCenter(),
-			AStar.Edges[i]->End->OctreeNode->Bounds.GetCenter(),
-			FColor::Cyan
-		);
+	if (this->bDrawOctree) {
+		DrawOctree(this->MyOctree.Root);
 	}
-	
 
-	//LogMain << "@AStar  Nodes.Num() = " << Nodes.Num();
-	for (auto& Elem : AStar.Nodes) {
-		FAStarNode* Node = Elem.Value;
-		DrawDebugSphere(GetWorld(),
-			Node->OctreeNode->Bounds.GetCenter(),
-			64,	//radius
-			8, //segments
-			FColor::Blue
-		);
+	if (this->bDrawEdges) {
+		for (int i = 0; i < AStar.Edges.Num(); i++) {
+			DrawDebugLine(GetWorld(),
+				AStar.Edges[i]->Start->OctreeNode->Bounds.GetCenter(),
+				AStar.Edges[i]->End->OctreeNode->Bounds.GetCenter(),
+				FColor::Cyan
+			);
+		}
 	}
+
+	if (this->bDrawNodes) {
+		for (auto& Elem : AStar.Nodes) {
+			FAStarNode* Node = Elem.Value;
+			DrawDebugSphere(GetWorld(),
+				Node->OctreeNode->Bounds.GetCenter(),
+				64,	//radius
+				8, //segments
+				FColor::Blue
+			);
+		}
+	}
+
 
 }
 

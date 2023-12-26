@@ -19,9 +19,7 @@ class DRAGONFLIGHTSIM_API FMyOctree
 	uint32_t OCTREE_NODE_ID = 0;	
 public:
 	
-	UWorld* UWorldRef = nullptr;
-
-    int MaxRecordedDepth = 0;
+	int MaxRecordedDepth = 0;
 
 	FBox WorldBounds;
 
@@ -33,7 +31,7 @@ public:
 
 	FAStar* AStar;
 
-	FMyOctree(TArray<AActor*>& Obstacles, FAStar* AStar, UWorld* UWorldRef);
+	FMyOctree(TArray<AActor*>& Obstacles, FAStar* AStar);
 
 	bool bIsBuilt = false;
 
