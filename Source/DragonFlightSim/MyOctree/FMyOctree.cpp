@@ -3,6 +3,8 @@
 
 #include "FMyOctree.h"
 
+typedef Octant Octant;
+
 FMyOctree::FMyOctree(TArray<AActor*>& Obstacles, FAStar* AStar)
 {
 	this->AStar = AStar;
@@ -35,7 +37,7 @@ FMyOctree::FMyOctree(TArray<AActor*>& Obstacles, FAStar* AStar)
 
 void FMyOctree::Build()
 {
-	this->Root = new FMyOctreeNode(WorldBounds, nullptr, 0, OCTREE_NODE_ID);
+	this->Root = new FMyOctreeNode(WorldBounds, nullptr, 0, Octant(0), OCTREE_NODE_ID);
 
 	for (AActor* Obstacle : this->Obstacles) {
 		this->Insert(Obstacle);
@@ -122,7 +124,7 @@ void FMyOctree::DivideAndInsert(FMyOctreeNode* CurrentNode, AActor* Obstacle, in
 	//LogMain << "Depth: " << Depth;
 	for (int i = 0; i < 8; ++i) {
 		if (CurrentNode->Children[i] == nullptr) {
-			CurrentNode->Children[i] = new FMyOctreeNode(CurrentNode->ChildBounds[i], CurrentNode, Depth, OCTREE_NODE_ID);
+			CurrentNode->Children[i] = new FMyOctreeNode(CurrentNode->ChildBounds[i], CurrentNode, Depth, (Octant)i, OCTREE_NODE_ID);
 		}
 		// if obstacle's bbox intersects with the current octant, push it down the tree and subdivide further
 		if (CurrentNode->ChildBounds[i].Intersect(Obstacle->GetComponentByClass<UStaticMeshComponent>()->Bounds.GetBox())) {
@@ -181,9 +183,116 @@ void FMyOctree::ClearOctree() {
 	LogMain << "@FMyOctree::ClearOctree -> deleted " << OutDeletedNodeCount << " nodes";
 }
 
-FMyOctreeNode* FMyOctree::GetNeighbourOfGreaterOrEqualSize(FMyOctreeNode* Node, CardinalDir Direction)
+bool FMyOctree::ADJ(DIRECTION I, Octant O) const
 {
-	return RGetNeighbourOfGreaterOrEqualSize(Node, Direction);
+	// based on TABLE 1
+
+	// static, so it won't reallocate memory other than for the 1st call
+	static const bool AdjacencyMatrix[26][8] = {
+		{ 1, 1, 1, 1, 0, 0, 0, 0 }, // L
+		{ 0, 0, 0, 0, 1, 1, 1, 1 }, // R
+		{ 1, 1, 0, 0, 1, 1, 0, 0 }, // D
+		{ 0, 0, 1, 1, 0, 0, 1, 1 }, // U
+		{ 1, 0, 1, 0, 1, 0, 1, 0 }, // B
+		{ 0, 1, 0, 1, 0, 1, 0, 1 }, // F
+		{ 1, 1, 0, 0, 0, 0, 0, 0 }, // LD
+		{ 0, 0, 1, 1, 0, 0, 0, 0 }, // LU
+		{ 1, 0, 1, 0, 0, 0, 0, 0 }, // LB
+		{ 0, 1, 0, 1, 0, 0, 0, 0 }, // LF
+		{ 0, 0, 0, 0, 1, 1, 0, 0 }, // RD
+		{ 0, 0, 0, 0, 0, 0, 1, 1 }, // RU
+		{ 0, 0, 0, 0, 1, 0, 1, 0 }, // RB
+		{ 0, 0, 0, 0, 0, 1, 0, 1 }, // RF
+		{ 1, 0, 0, 0, 1, 0, 0, 0 }, // DB
+		{ 0, 1, 0, 0, 0, 1, 0, 0 }, // DF
+		{ 0, 0, 1, 0, 0, 0, 1, 0 }, // UB
+		{ 0, 0, 0, 1, 0, 0, 0, 1 }, // UF
+		{ 1, 0, 0, 0, 0, 1, 0, 0 }, // LDB
+		{ 0, 1, 0, 0, 1, 0, 0, 0 }, // LDF
+		{ 0, 0, 1, 0, 0, 0, 1, 0 }, // LUB
+		{ 0, 0, 0, 1, 0, 0, 0, 1 }, // LUF
+		{ 0, 0, 0, 0, 1, 0, 0, 0 }, // RDB
+		{ 0, 0, 0, 0, 0, 1, 0, 0 }, // RDF
+		{ 0, 0, 0, 0, 0, 0, 1, 0 }, // RUB
+		{ 0, 0, 0, 0, 0, 0, 0, 1 }  // RUF
+	};
+	return AdjacencyMatrix[I][O];
+}
+
+Octant FMyOctree::REFLECT(DIRECTION I, Octant O) const {
+	typedef FMyOctreeNode::Octant OCT;
+
+	// based on TABLE 2
+
+	// static, so it won't reallocate memory other than for the 1st call
+	static const OCT reflectionMatrix[26][8] = {
+		//-------------------------------- OCTANT[8] --------------------------------       // DIRECTION[26]
+		{ OCT::RDB, OCT::RDF, OCT::RUB, OCT::RUF, OCT::LDB, OCT::LDF, OCT::LUB, OCT::LUF }, // L
+		{ OCT::RDB, OCT::RDF, OCT::RUB, OCT::RUF, OCT::LDB, OCT::LDF, OCT::LUB, OCT::LUF }, // R
+		{ OCT::LUB, OCT::LUF, OCT::LDB, OCT::LDF, OCT::RUB, OCT::RUF, OCT::RDB, OCT::RDF }, // D
+		{ OCT::LUB, OCT::LUF, OCT::LDB, OCT::LDF, OCT::RUB, OCT::RUF, OCT::RDB, OCT::RDF }, // U
+		{ OCT::LDF, OCT::LDB, OCT::LUF, OCT::LUB, OCT::RDF, OCT::RDB, OCT::RUF, OCT::RUB }, // B
+		{ OCT::LDF, OCT::LDB, OCT::LUF, OCT::LUB, OCT::RDF, OCT::RDB, OCT::RUF, OCT::RUB }, // F
+		{ OCT::RUB, OCT::RUF, OCT::RDB, OCT::RDF, OCT::LUB, OCT::LUF, OCT::LDB, OCT::LDF }, // LD
+		{ OCT::RUB, OCT::RUF, OCT::RDB, OCT::RDF, OCT::LUB, OCT::LUF, OCT::LDB, OCT::LDF }, // LU
+		{ OCT::RDF, OCT::RDB, OCT::RUF, OCT::RUB, OCT::LDF, OCT::LDB, OCT::LUF, OCT::LUB }, // LB
+		{ OCT::RDF, OCT::RDB, OCT::RUF, OCT::RUB, OCT::LDF, OCT::LDB, OCT::LUF, OCT::LUB }, // LF
+		{ OCT::RUB, OCT::RUF, OCT::RDB, OCT::RDF, OCT::LUB, OCT::LUF, OCT::LDB, OCT::LDF }, // RD
+		{ OCT::RUB, OCT::RUF, OCT::RDB, OCT::RDF, OCT::LUB, OCT::LUF, OCT::LDB, OCT::LDF }, // RU
+		{ OCT::RDF, OCT::RDB, OCT::RUF, OCT::RUB, OCT::LDF, OCT::LDB, OCT::LUF, OCT::LUB }, // RB
+		{ OCT::RDF, OCT::RDB, OCT::RUF, OCT::RUB, OCT::LDF, OCT::LDB, OCT::LUF, OCT::LUB }, // RF
+		{ OCT::LUF, OCT::LUB, OCT::LDF, OCT::LDB, OCT::RUF, OCT::RUB, OCT::RDF, OCT::RDB }, // DB
+		{ OCT::LUF, OCT::LUB, OCT::LDF, OCT::LDB, OCT::RUF, OCT::RUB, OCT::RDF, OCT::RDB }, // DF
+		{ OCT::LUF, OCT::LUB, OCT::LDF, OCT::LDB, OCT::RUF, OCT::RUB, OCT::RDF, OCT::RDB }, // UB
+		{ OCT::LUF, OCT::LUB, OCT::LDF, OCT::LDB, OCT::RUF, OCT::RUB, OCT::RDF, OCT::RDB }, // UF
+		{ OCT::RUF, OCT::RUB, OCT::RDF, OCT::RDB, OCT::LUF, OCT::LUB, OCT::LDF, OCT::LDB }, // LDB
+		{ OCT::RUF, OCT::RUB, OCT::RDF, OCT::RDB, OCT::LUF, OCT::LUB, OCT::LDF, OCT::LDB }, // LDF
+		{ OCT::RUF, OCT::RUB, OCT::RDF, OCT::RDB, OCT::LUF, OCT::LUB, OCT::LDF, OCT::LDB }, // LUB
+		{ OCT::RUF, OCT::RUB, OCT::RDF, OCT::RDB, OCT::LUF, OCT::LUB, OCT::LDF, OCT::LDB }, // LUF
+		{ OCT::RUF, OCT::RUB, OCT::RDF, OCT::RDB, OCT::LUF, OCT::LUB, OCT::LDF, OCT::LDB }, // RDB
+		{ OCT::RUF, OCT::RUB, OCT::RDF, OCT::RDB, OCT::LUF, OCT::LUB, OCT::LDF, OCT::LDB }, // RDF
+		{ OCT::RUF, OCT::RUB, OCT::RDF, OCT::RDB, OCT::LUF, OCT::LUB, OCT::LDF, OCT::LDB }, // RUB
+		{ OCT::RUF, OCT::RUB, OCT::RDF, OCT::RDB, OCT::LUF, OCT::LUB, OCT::LDF, OCT::LDB }  // RUF
+	};
+	return reflectionMatrix[I][O];
+}
+
+FMyOctreeNode* FMyOctree::FATHER(FMyOctreeNode* P) {
+	if (P == nullptr) {
+		return nullptr;
+	}
+	return P->Parent;
+}
+
+FMyOctreeNode* FMyOctree::SON(FMyOctreeNode* P, Octant O) {
+	if (P == nullptr)
+		return nullptr;
+	if (P->Children == nullptr) {
+		return nullptr;
+	}
+	return P->Children[O];
+}
+
+Octant FMyOctree::SONTYPE(FMyOctreeNode* P) {
+	return P->SonType;
+}
+
+FMyOctreeNode* FMyOctree::OT_EQ_FACE_NEIGHBOUR(FMyOctreeNode* P, DIRECTION I) {
+	if (P->Parent == nullptr) {	//reached Root
+		return nullptr;
+	}
+
+	if (ADJ(I, SONTYPE(P))) {
+		FMyOctreeNode* Neighbour = OT_EQ_FACE_NEIGHBOUR(FATHER(P), I);
+		if (Neighbour == nullptr || Neighbour->IsEmptyLeaf()) {
+			return Neighbour;
+		}
+		return SON(Neighbour, REFLECT(I, SONTYPE(P)));
+	}
+	else {
+		return SON(FATHER(P), REFLECT(I, SONTYPE(P)));
+	}
+	return nullptr;
 }
 
 TArray<FMyOctreeNode*> FMyOctree::GetNeighbours(FMyOctreeNode* Node)
@@ -192,290 +301,40 @@ TArray<FMyOctreeNode*> FMyOctree::GetNeighbours(FMyOctreeNode* Node)
 
 	// NORTH
 	{
-		FMyOctreeNode* Neighbour = GetNeighbourOfGreaterOrEqualSize(Node, CardinalDir::NORTH);
-		Neighbours.Append(FindNeighboursOfSmallerSize(Neighbour, CardinalDir::NORTH));
+		FMyOctreeNode* Neighbour = OT_EQ_FACE_NEIGHBOUR(Node, DIRECTION::B);
+		//if (Neighbour != nullptr && Neighbour->IsEmptyLeaf())
+		//	Neighbours.Push(Neighbour);
+		Neighbours.Append(FindNeighboursOfSmallerSize(Neighbour, DIRECTION::B));
 	}
 	// SOUTH
 	{
-		FMyOctreeNode* Neighbour = GetNeighbourOfGreaterOrEqualSize(Node, CardinalDir::SOUTH);
-		Neighbours.Append(FindNeighboursOfSmallerSize(Neighbour, CardinalDir::SOUTH));
+		FMyOctreeNode* Neighbour = OT_EQ_FACE_NEIGHBOUR(Node, DIRECTION::F);
+		Neighbours.Append(FindNeighboursOfSmallerSize(Neighbour, DIRECTION::F));
 	}
 	// EAST
 	{
-		FMyOctreeNode* Neighbour = GetNeighbourOfGreaterOrEqualSize(Node, CardinalDir::EAST);
-		Neighbours.Append(FindNeighboursOfSmallerSize(Neighbour, CardinalDir::EAST));
+		FMyOctreeNode* Neighbour = OT_EQ_FACE_NEIGHBOUR(Node, DIRECTION::R);
+		Neighbours.Append(FindNeighboursOfSmallerSize(Neighbour, DIRECTION::R));
 	}
 	// WEST
 	{
-		FMyOctreeNode* Neighbour = GetNeighbourOfGreaterOrEqualSize(Node, CardinalDir::WEST);
-		Neighbours.Append(FindNeighboursOfSmallerSize(Neighbour, CardinalDir::WEST));
+		FMyOctreeNode* Neighbour = OT_EQ_FACE_NEIGHBOUR(Node, DIRECTION::L);
+		Neighbours.Append(FindNeighboursOfSmallerSize(Neighbour, DIRECTION::L));
 	}
 	// UP
 	{
-		FMyOctreeNode* Neighbour = GetNeighbourOfGreaterOrEqualSize(Node, CardinalDir::UP);
-		Neighbours.Append(FindNeighboursOfSmallerSize(Neighbour, CardinalDir::UP));
+		FMyOctreeNode* Neighbour = OT_EQ_FACE_NEIGHBOUR(Node, DIRECTION::U);
+		Neighbours.Append(FindNeighboursOfSmallerSize(Neighbour, DIRECTION::U));
 	}
 	// DOWN
 	{
-		FMyOctreeNode* Neighbour = GetNeighbourOfGreaterOrEqualSize(Node, CardinalDir::DOWN);
-		Neighbours.Append(FindNeighboursOfSmallerSize(Neighbour, CardinalDir::DOWN));
+		FMyOctreeNode* Neighbour = OT_EQ_FACE_NEIGHBOUR(Node, DIRECTION::D);
+		Neighbours.Append(FindNeighboursOfSmallerSize(Neighbour, DIRECTION::D));
 	}
 	return Neighbours;
 }
 
-
-typedef FMyOctreeNode::ChildIndex ChildIndex;
-
-/*
-* Finds the face neighbours of a given Octree Node without using intersection tests.
-* Adapted from http://www.cs.umd.edu/~hjs/pubs/SameCVGIP89.pdf 
-* and https://geidav.wordpress.com/2017/12/02/advanced-octrees-4-finding-neighbour-nodes/ 
-*/
-FMyOctreeNode* FMyOctree::RGetNeighbourOfGreaterOrEqualSize(FMyOctreeNode* Node, CardinalDir Direction)
-{
-	switch (Direction) {
-		case CardinalDir::NORTH: {
-			if (Node->Parent == nullptr) {	//reached Root
-				return nullptr;
-			}
-			// current node == top-south-west child ? return top-north-west
-			if (Node->Parent->Children[ChildIndex::TSW] == Node) { 
-				return Node->Parent->Children[ChildIndex::TNW];
-			}
-			// current node == top-south-east child ? return top-north-east
-			if (Node->Parent->Children[ChildIndex::TSE] == Node) {
-				return Node->Parent->Children[ChildIndex::TNE];
-			}
-			// current node == bottom-south-west child ? return bottom-north-west
-			if (Node->Parent->Children[ChildIndex::BSW] == Node) {
-				return Node->Parent->Children[ChildIndex::BNW];
-			}
-			// current node == bottom-south-east child ? return bottom-north-east
-			if (Node->Parent->Children[ChildIndex::BSE] == Node) {
-				return Node->Parent->Children[ChildIndex::BNE];
-			}
-			FMyOctreeNode* Neighbour = RGetNeighbourOfGreaterOrEqualSize(Node->Parent, Direction);
-			if (Neighbour == nullptr || Neighbour->IsEmptyLeaf()) {
-				return Neighbour;
-			}
-			// Neighbour is guaranteed to be a north child
-			if (Node->Parent->Children[ChildIndex::TNW] == Node) {
-				return Neighbour->Children[ChildIndex::TSW];
-			}
-			else if (Node->Parent->Children[ChildIndex::TNE] == Node) {
-				return Neighbour->Children[ChildIndex::TSE];
-			}
-			else if (Node->Parent->Children[ChildIndex::BNW] == Node) {
-				return Neighbour->Children[ChildIndex::BSW];
-			}
-			else if (Node->Parent->Children[ChildIndex::BNE] == Node) {
-				return Neighbour->Children[ChildIndex::BSE];
-			}
-			return nullptr;
-		}
-		case CardinalDir::SOUTH: {
-			if (Node->Parent == nullptr) { // reached Root
-				return nullptr;
-			}
-			// current node == top-north-west child ? return top-south-west
-			if (Node->Parent->Children[ChildIndex::TNW] == Node) {
-				return Node->Parent->Children[ChildIndex::TSW];
-			}
-			// current node == top-north-east child ? return top-south-east
-			if (Node->Parent->Children[ChildIndex::TNE] == Node) {
-				return Node->Parent->Children[ChildIndex::TSE];
-			}
-			// current node == bottom-north-west child ? return bottom-south-west
-			if (Node->Parent->Children[ChildIndex::BNW] == Node) {
-				return Node->Parent->Children[ChildIndex::BSW];
-			}
-			// current node == bottom-north-east child ? return bottom-south-east
-			if (Node->Parent->Children[ChildIndex::BNE] == Node) {
-				return Node->Parent->Children[ChildIndex::BSE];
-			}
-			FMyOctreeNode* Neighbour = RGetNeighbourOfGreaterOrEqualSize(Node->Parent, Direction);
-			if (Neighbour == nullptr || Neighbour->IsEmptyLeaf()) {
-				return Neighbour;
-			}
-			// Neighbour is guaranteed to be a south child
-			if (Node->Parent->Children[ChildIndex::TSW] == Node) {
-				return Neighbour->Children[ChildIndex::TNW];
-			}
-			else if (Node->Parent->Children[ChildIndex::TSE] == Node) {
-				return Neighbour->Children[ChildIndex::TNE];
-			}
-			else if (Node->Parent->Children[ChildIndex::BSW] == Node) {
-				return Neighbour->Children[ChildIndex::BNW];
-			}
-			else if (Node->Parent->Children[ChildIndex::BSE] == Node) {
-				return Neighbour->Children[ChildIndex::BNE];
-			}
-			return nullptr;
-		}
-		case CardinalDir::EAST: {
-			if (Node->Parent == nullptr) {  // reached Root
-				return nullptr;
-			}
-			// current node == top-south-west child ? return top-south-east
-			if (Node->Parent->Children[ChildIndex::TSW] == Node) {
-				return Node->Parent->Children[ChildIndex::TSE];
-			}
-			// current node == top-north-west child ? return top-north-east
-			if (Node->Parent->Children[ChildIndex::TNW] == Node) {
-				return Node->Parent->Children[ChildIndex::TNE];
-			}
-			// current node == bottom-south-west child ? return bottom-south-east
-			if (Node->Parent->Children[ChildIndex::BSW] == Node) {
-				return Node->Parent->Children[ChildIndex::BSE];
-			}
-			// current node == bottom-north-west child ? return bottom-north-east
-			if (Node->Parent->Children[ChildIndex::BNW] == Node) {
-				return Node->Parent->Children[ChildIndex::BNE];
-			}
-
-			FMyOctreeNode* Neighbour = RGetNeighbourOfGreaterOrEqualSize(Node->Parent, Direction);
-			if (Neighbour == nullptr || Neighbour->IsEmptyLeaf()) {
-				return Neighbour;
-			}
-			// Neighbour is guaranteed to be an east child
-			if (Node->Parent->Children[ChildIndex::TSE] == Node) {
-				return Neighbour->Children[ChildIndex::TSW];
-			}
-			else if (Node->Parent->Children[ChildIndex::TNE] == Node) {
-				return Neighbour->Children[ChildIndex::TNW];
-			}
-			else if (Node->Parent->Children[ChildIndex::BSE] == Node) {
-				return Neighbour->Children[ChildIndex::BSW];
-			}
-			else if (Node->Parent->Children[ChildIndex::BNE] == Node) {
-				return Neighbour->Children[ChildIndex::BNW];
-			}
-			return nullptr;
-		}
-		case CardinalDir::WEST: {
-			if (Node->Parent == nullptr) {  // reached Root
-				return nullptr;
-			}
-			// current node == top-south-east child ? return top-south-west
-			if (Node->Parent->Children[ChildIndex::TSE] == Node) {
-				return Node->Parent->Children[ChildIndex::TSW];
-			}
-			// current node == top-north-east child ? return top-north-west
-			if (Node->Parent->Children[ChildIndex::TNE] == Node) {
-				return Node->Parent->Children[ChildIndex::TNW];
-			}
-			// current node == bottom-south-east child ? return bottom-south-west
-			if (Node->Parent->Children[ChildIndex::BSE] == Node) {
-				return Node->Parent->Children[ChildIndex::BSW];
-			}
-			// current node == bottom-north-east child ? return bottom-north-west
-			if (Node->Parent->Children[ChildIndex::BNE] == Node) {
-				return Node->Parent->Children[ChildIndex::BNW];
-			}
-			FMyOctreeNode* Neighbour = RGetNeighbourOfGreaterOrEqualSize(Node->Parent, Direction);
-			if (Neighbour == nullptr || Neighbour->IsEmptyLeaf()) {
-				return Neighbour;
-			}
-			// Neighbour is guaranteed to be a west child
-			if (Node->Parent->Children[ChildIndex::TSW] == Node) {
-				return Neighbour->Children[ChildIndex::TSE];
-			}
-			else if (Node->Parent->Children[ChildIndex::TNW] == Node) {
-				return Neighbour->Children[ChildIndex::TNE];
-			}
-			else if (Node->Parent->Children[ChildIndex::BSW] == Node) {
-				return Neighbour->Children[ChildIndex::BSE];
-			}
-			else if (Node->Parent->Children[ChildIndex::BNW] == Node) {
-				return Neighbour->Children[ChildIndex::BNE];
-			}
-			return nullptr;
-		}
-		case CardinalDir::UP: {
-			if (Node->Parent == nullptr) {  // reached Root
-				return nullptr;
-			}
-			// current node == bottom-south-west child ? return top-south-west
-			if (Node->Parent->Children[ChildIndex::BSW] == Node) {
-				return Node->Parent->Children[ChildIndex::TSW];
-			}
-			// current node == bottom-north-west child ? return top-north-west
-			if (Node->Parent->Children[ChildIndex::BNW] == Node) {
-				return Node->Parent->Children[ChildIndex::TNW];
-			}
-			// current node == bottom-south-east child ? return top-south-east
-			if (Node->Parent->Children[ChildIndex::BSE] == Node) {
-				//LogMain << "@RGetNeighbourOfGreaterOrEqualSize: is leaf node = " << (Node->Parent->Children[ChildIndex::TSE]->IsEmptyLeaf() ? "true" : "false");
-				return Node->Parent->Children[ChildIndex::TSE];
-				//return nullptr;
-			}
-			// current node == bottom-north-east child ? return top-north-east
-			if (Node->Parent->Children[ChildIndex::BNE] == Node) {
-				return Node->Parent->Children[ChildIndex::TNE];
-			}
-			FMyOctreeNode* Neighbour = RGetNeighbourOfGreaterOrEqualSize(Node->Parent, Direction);
-			if (Neighbour == nullptr || Neighbour->IsEmptyLeaf()) {
-				return Neighbour;
-			}
-			// Neighbour is guaranteed to be an up child
-			if (Node->Parent->Children[ChildIndex::TSW] == Node) {
-				return Neighbour->Children[ChildIndex::BSW];
-			}
-			else if (Node->Parent->Children[ChildIndex::TNW] == Node) {
-				return Neighbour->Children[ChildIndex::BNW];
-			}
-			else if (Node->Parent->Children[ChildIndex::TSE] == Node) {
-				return Neighbour->Children[ChildIndex::BSE];
-			}
-			else if (Node->Parent->Children[ChildIndex::TNE] == Node) {
-				return Neighbour->Children[ChildIndex::BNE];
-			}
-			return nullptr;
-		}
-		case CardinalDir::DOWN: {
-			if (Node->Parent == nullptr) {  // reached Root
-				return nullptr;
-			}
-			// current node == top-south-west child ? return bottom-south-west
-			if (Node->Parent->Children[ChildIndex::TSW] == Node) {
-				return Node->Parent->Children[ChildIndex::BSW];
-			}
-			// current node == top-north-west child ? return bottom-north-west
-			if (Node->Parent->Children[ChildIndex::TNW] == Node) {
-				return Node->Parent->Children[ChildIndex::BNW];
-			}
-			// current node == top-south-east child ? return bottom-south-east
-			if (Node->Parent->Children[ChildIndex::TSE] == Node) {
-				return Node->Parent->Children[ChildIndex::BSE];
-			}
-			// current node == top-north-east child ? return bottom-north-east
-			if (Node->Parent->Children[ChildIndex::TNE] == Node) {
-				return Node->Parent->Children[ChildIndex::BNE];
-			}
-			FMyOctreeNode* Neighbour = RGetNeighbourOfGreaterOrEqualSize(Node->Parent, Direction);
-			if (Neighbour == nullptr || Neighbour->IsEmptyLeaf()) {
-				return Neighbour;
-			}
-			// Neighbour is guaranteed to be a down child
-			if (Node->Parent->Children[ChildIndex::BSW] == Node) {
-				return Neighbour->Children[ChildIndex::TSW];
-			}
-			else if (Node->Parent->Children[ChildIndex::BNW] == Node) {
-				return Neighbour->Children[ChildIndex::TNW];
-			}
-			else if (Node->Parent->Children[ChildIndex::BSE] == Node) {
-				return Neighbour->Children[ChildIndex::TSE];
-			}
-			else if (Node->Parent->Children[ChildIndex::BNE] == Node) {
-				return Neighbour->Children[ChildIndex::TNE];
-			}
-			return nullptr;
-		}
-		default: return nullptr;
-	}
-}
-
-TArray<FMyOctreeNode*> FMyOctree::FindNeighboursOfSmallerSize(FMyOctreeNode* Node, CardinalDir Direction)
+TArray<FMyOctreeNode*> FMyOctree::FindNeighboursOfSmallerSize(FMyOctreeNode* Node, DIRECTION Direction)
 {
 	TArray<FMyOctreeNode*> Candidates;
 	TArray<FMyOctreeNode*> Neighbours;
@@ -486,92 +345,92 @@ TArray<FMyOctreeNode*> FMyOctree::FindNeighboursOfSmallerSize(FMyOctreeNode* Nod
 
 	switch(Direction) 
 	{
-		case CardinalDir::NORTH: {
+		case DIRECTION::B: {
 			while (Candidates.Num() > 0) {
 				if (Candidates[0]->IsEmptyLeaf()) {
 					Neighbours.Add(Candidates[0]);
 				}
 				else if (Candidates[0]->ContainedActors.Num() == 0) {
-					Candidates.Add(Candidates[0]->Children[ChildIndex::TSW]);
-					Candidates.Add(Candidates[0]->Children[ChildIndex::TSE]);
-					Candidates.Add(Candidates[0]->Children[ChildIndex::BSW]);
-					Candidates.Add(Candidates[0]->Children[ChildIndex::BSE]);
+					Candidates.Add(Candidates[0]->Children[Octant::LUF]);
+					Candidates.Add(Candidates[0]->Children[Octant::RUF]);
+					Candidates.Add(Candidates[0]->Children[Octant::LDF]);
+					Candidates.Add(Candidates[0]->Children[Octant::RDF]);
 				}
 				Candidates.RemoveAt(0);
 			}
 			return Neighbours;
 		}
-		case CardinalDir::SOUTH: {
+		case DIRECTION::F: {
 			while (Candidates.Num() > 0) {
 				if (Candidates[0]->IsEmptyLeaf()) {
 					Neighbours.Add(Candidates[0]);
 				}
 				else if (Candidates[0]->ContainedActors.Num() == 0) {
-					Candidates.Add(Candidates[0]->Children[ChildIndex::TNW]);
-					Candidates.Add(Candidates[0]->Children[ChildIndex::TNE]);
-					Candidates.Add(Candidates[0]->Children[ChildIndex::BNW]);
-					Candidates.Add(Candidates[0]->Children[ChildIndex::BNE]);
+					Candidates.Add(Candidates[0]->Children[Octant::LUB]);
+					Candidates.Add(Candidates[0]->Children[Octant::RUB]);
+					Candidates.Add(Candidates[0]->Children[Octant::LDB]);
+					Candidates.Add(Candidates[0]->Children[Octant::RDB]);
 				}
 				Candidates.RemoveAt(0);
 			}
 			return Neighbours;
 		}
-		case CardinalDir::EAST: {
+		case DIRECTION::R: {
 			while (Candidates.Num() > 0) {
 				if (Candidates[0]->IsEmptyLeaf()) {
 					Neighbours.Add(Candidates[0]);
 				}
 				else if (Candidates[0]->ContainedActors.Num() == 0) {
-					Candidates.Add(Candidates[0]->Children[ChildIndex::TSW]);
-					Candidates.Add(Candidates[0]->Children[ChildIndex::TNW]);
-					Candidates.Add(Candidates[0]->Children[ChildIndex::BSW]);
-					Candidates.Add(Candidates[0]->Children[ChildIndex::BNW]);
+					Candidates.Add(Candidates[0]->Children[Octant::LUF]);
+					Candidates.Add(Candidates[0]->Children[Octant::LUB]);
+					Candidates.Add(Candidates[0]->Children[Octant::LDF]);
+					Candidates.Add(Candidates[0]->Children[Octant::LDB]);
 				}
 				Candidates.RemoveAt(0);
 			}
 			return Neighbours;
 		}
-		case CardinalDir::WEST: {
+		case DIRECTION::L: {
 			while (Candidates.Num() > 0) {
 				if (Candidates[0]->IsEmptyLeaf()) {
 					Neighbours.Add(Candidates[0]);
 				}
 				else if (Candidates[0]->ContainedActors.Num() == 0) {
-					Candidates.Add(Candidates[0]->Children[ChildIndex::TSE]);
-					Candidates.Add(Candidates[0]->Children[ChildIndex::TNE]);
-					Candidates.Add(Candidates[0]->Children[ChildIndex::BSE]);
-					Candidates.Add(Candidates[0]->Children[ChildIndex::BNE]);
+					Candidates.Add(Candidates[0]->Children[Octant::RUF]);
+					Candidates.Add(Candidates[0]->Children[Octant::RUB]);
+					Candidates.Add(Candidates[0]->Children[Octant::RDF]);
+					Candidates.Add(Candidates[0]->Children[Octant::RDB]);
 				}
 				Candidates.RemoveAt(0);
 			}
 			return Neighbours;
 		}
-		case CardinalDir::UP: {
+		case DIRECTION::U: {
 			while (Candidates.Num() > 0) {
 				//LogMain << "Candidates.Num() = " << Candidates.Num() << ", Candidates[0]->IsEmptyLeaf() = " << Candidates[0]->IsEmptyLeaf();
 				if (Candidates[0]->IsEmptyLeaf()) {
 					Neighbours.Add(Candidates[0]);
 				}
 				else if (Candidates[0]->ContainedActors.Num() == 0) {
-					Candidates.Add(Candidates[0]->Children[ChildIndex::BSW]);
-					Candidates.Add(Candidates[0]->Children[ChildIndex::BNW]);
-					Candidates.Add(Candidates[0]->Children[ChildIndex::BSE]);
-					Candidates.Add(Candidates[0]->Children[ChildIndex::BNE]);
+					Candidates.Add(Candidates[0]->Children[Octant::LDF]);
+					Candidates.Add(Candidates[0]->Children[Octant::LDB]);
+					Candidates.Add(Candidates[0]->Children[Octant::RDF]);
+					Candidates.Add(Candidates[0]->Children[Octant::RDB]);
 				}
 				Candidates.RemoveAt(0);
 			}
 			return Neighbours;
 		}
-		case CardinalDir::DOWN: {
+		case DIRECTION::D: {
 			while (Candidates.Num() > 0) {
 				if (Candidates[0]->IsEmptyLeaf()) {
 					Neighbours.Add(Candidates[0]);
 				}
 				else if (Candidates[0]->ContainedActors.Num() == 0) {
-					Candidates.Add(Candidates[0]->Children[ChildIndex::TSW]);
-					Candidates.Add(Candidates[0]->Children[ChildIndex::TNW]);
-					Candidates.Add(Candidates[0]->Children[ChildIndex::TSE]);
-					Candidates.Add(Candidates[0]->Children[ChildIndex::TNE]);
+					Candidates.Add(Candidates[0]->Children[Octant::LUF]);
+					Candidates.Add(Candidates[0]->Children[Octant::LUB]);
+					Candidates.Add(Candidates[0]->Children[Octant::RUF]);
+					Candidates.Add(Candidates[0]->Children[Octant::RUB]);
 				}
 				Candidates.RemoveAt(0);
 			}
@@ -600,6 +459,7 @@ void FMyOctree::DeleteOctreeNode(FMyOctreeNode* CurrentNode, uint32_t &OutDelete
 
 	OutDeletedNodeCount++;
 }
+
 
 FMyOctree::~FMyOctree()
 {

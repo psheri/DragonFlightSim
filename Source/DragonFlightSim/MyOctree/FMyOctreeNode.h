@@ -29,16 +29,18 @@ public:
 	TArray<AActor*> ContainedActors;
 	FMyOctreeNode* Parent = nullptr;
 
-	enum ChildIndex {
-		BSW = 0, // bottom south-west
-		BNW = 1, // bottom north-west
-		BSE = 2, // bottom south-east
-		BNE = 3, // bottom north-east
-		TSW = 4, // top south-west
-		TNW = 5, // top north-west
-		TSE = 6, // top south-east
-		TNE = 7, // top north-east
+	enum Octant {
+		LDB = 0, // left-down-back
+		LDF = 1, // left-down-front
+		LUB = 2, // left-up-back
+		LUF = 3, // left-up-front
+		RDB = 4, // right-down-back
+		RDF = 5, // right-down-front
+		RUB = 6, // right-up-back
+		RUF = 7, // right-up-front
 	};
+
+	Octant SonType = LDB; // is this node a LDB, LDF, LUB, LUF, etc. child?
 
 	bool IsLeaf() {
 		return this->Children == nullptr;
@@ -46,12 +48,12 @@ public:
 	bool IsEmptyLeaf() {
 		return this->Children == nullptr && ContainedActors.Num() == 0;
 	}
-	FMyOctreeNode(FBox Bounds, FMyOctreeNode* Parent, int Depth, uint32_t &OCTREE_NODE_ID);
+	FMyOctreeNode(FBox Bounds, FMyOctreeNode* Parent, int Depth, Octant SonType, uint32_t &OCTREE_NODE_ID);
 
 	~FMyOctreeNode() {
 
 	}
 
-	FMyOctreeNode* GetChild(ChildIndex Index);
+	FMyOctreeNode* GetChild(Octant Index);
 };
 

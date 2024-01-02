@@ -6,7 +6,7 @@
 #include "CoreMinimal.h"
 
 #define LogMain LogHelper()
-#define ENABLE_DEBUG_TO_FILE 0 //change to 1/0 to enable or disable
+#define ENABLE_DEBUG_TO_FILE 1 //change to 1/0 to enable or disable
 
 /**
  * Simplifies logging to console/screen.
