@@ -304,6 +304,7 @@ TArray<FMyOctreeNode*> FMyOctree::GetNeighbours(FMyOctreeNode* Node)
 		FMyOctreeNode* Neighbour = OT_EQ_FACE_NEIGHBOUR(Node, DIRECTION::B);
 		//if (Neighbour != nullptr && Neighbour->IsEmptyLeaf())
 		//	Neighbours.Push(Neighbour);
+		//return Neighbours;
 		Neighbours.Append(FindNeighboursOfSmallerSize(Neighbour, DIRECTION::B));
 	}
 	// SOUTH

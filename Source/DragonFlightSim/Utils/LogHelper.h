@@ -6,7 +6,7 @@
 #include "CoreMinimal.h"
 
 #define LogMain LogHelper()
-#define ENABLE_DEBUG_TO_FILE 1 //change to 1/0 to enable or disable
+#define ENABLE_DEBUG_TO_FILE 0 //change to 1/0 to enable or disable
 
 /**
  * Simplifies logging to console/screen.
@@ -32,6 +32,14 @@ public:
     LogHelper& operator<<(const FString& Value)
     {
         MessageStream << TCHAR_TO_UTF8(*Value);
+        return *this;
+    }
+
+    //handle FVector
+    template <>
+    LogHelper& operator<<(const FVector& Value)
+    {
+        MessageStream << "{ " << Value.X << ", " << Value.Y << ", " << Value.Z << " }";
         return *this;
     }
 

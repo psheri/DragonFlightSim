@@ -33,7 +33,28 @@ AFlightPathfinder::AFlightPathfinder()
 
 TArray<FAStarNode*> AFlightPathfinder::FindPath(FVector StartPos, FVector EndPos)
 {
-	return TArray<FAStarNode*>();
+	TArray<FAStarNode*> OutPath;
+	if (MyOctree.LeafNodes.Num() == 0)
+		return OutPath;
+
+	FMyOctreeNode* StartNode = MyOctree.GetNodeAtPosition(StartPos);
+	if (StartNode == nullptr || !StartNode->IsEmptyLeaf()) {
+		// need to look for closest neighbour leaf
+		LogMain << "@AFlightPathfinder::FindPath: start node not found @" << StartPos;
+	}
+	FMyOctreeNode* EndNode = MyOctree.GetNodeAtPosition(EndPos);
+	if (EndNode == nullptr || !EndNode->IsEmptyLeaf()) {
+		// need to look for closest neighbour leaf
+		LogMain << "@AFlightPathfinder::FindPath: end node not found @" << EndPos;
+	}
+
+	if (StartNode != nullptr && EndNode != nullptr) {
+		LogMain << "@AFlightPathfinder::FindPath: " << StartNode->Bounds.GetCenter() << " -> " << EndNode->Bounds.GetCenter();
+	}
+
+	bool result = AStar.FindPath(StartNode, EndNode, OutPath);
+
+	return OutPath;
 }
 
 TArray<FAStarNode*> AFlightPathfinder::FindRandomPath(const FVector* OverrideStartPos)
@@ -55,6 +76,11 @@ TArray<FAStarNode*> AFlightPathfinder::FindRandomPath(const FVector* OverrideSta
 			LogMain << "@AFlightPathfinder::FindRandomPath: unhandled case; path will be empty.";
 		}
 	}
+
+	if (StartNode != nullptr && EndNode != nullptr) {
+		LogMain << "FindRandomPath: " << StartNode->Bounds.GetCenter() << " -> " << EndNode->Bounds.GetCenter();
+	}
+
 	bool result = AStar.FindPath(StartNode, EndNode, OutPath);
 
 	return OutPath;
@@ -130,6 +156,13 @@ void AFlightPathfinder::Tick(float DeltaTime)
 	if (Dragons.Num() > 0)
 		Dragon = Dragons[0];
 	
+
+	if (this->bFindRandomPaths) {
+		TArray<FAStarNode*> Path = this->FindRandomPath();
+		LogMain << "Found random path with length " << this->FindRandomPath().Num();
+		this->DrawFlightPath(Path);
+	}
+
 	if (this->bDrawAgentNeighbours) {
 		if (Dragon != nullptr && Dragon->IsValidLowLevel()) {
 			FBox DragonBounds = Dragon->GetComponentByClass<UStaticMeshComponent>()->Bounds.GetBox();

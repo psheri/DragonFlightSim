@@ -17,6 +17,9 @@ class DRAGONFLIGHTSIM_API AFlightPathfinder : public AActor
 	FAStar AStar;
 public:	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug Draw")
+	bool bFindRandomPaths = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug Draw")
 	bool bDrawOctree = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug Draw")

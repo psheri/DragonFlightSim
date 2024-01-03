@@ -65,7 +65,6 @@ FAStarNode* FAStar::FindNode(uint32_t OctreeNodeID) {
 	return *Node;
 }
 
-// to do: implement heuristics that reduce the amount of nodes searched & bias the search to larger nodes.
 bool FAStar::FindPath(FMyOctreeNode* Start, FMyOctreeNode* End, TArray<FAStarNode*>& OutPath) {
 	if (Start == End) {
 		return false;
@@ -82,7 +81,6 @@ bool FAStar::FindPath(FMyOctreeNode* Start, FMyOctreeNode* End, TArray<FAStarNod
 	TSet<FAStarNode*> OpenListSet;
 	TSet<FAStarNode*> ClosedList;
 
-	float TempG = 0;
 	bool bIsTempBetter = false;
 
 	A->G = 0;
@@ -98,7 +96,7 @@ bool FAStar::FindPath(FMyOctreeNode* Start, FMyOctreeNode* End, TArray<FAStarNod
 
 		if (Current == B) {
 			// we found the path
-			//LogMain << "closedList size = " << ClosedList.Num();
+			LogMain << "closedList size = " << ClosedList.Num();
 			ReconstructPath(A, B, OutPath);
 			return true;
 		}
@@ -108,35 +106,31 @@ bool FAStar::FindPath(FMyOctreeNode* Start, FMyOctreeNode* End, TArray<FAStarNod
 		FAStarNode* Neighbor;
 		for (FAStarEdge* Edge : Current->EdgeList) {
 			Neighbor = Edge->End;
-			Neighbor->G = Current->G + (Current->OctreeNode->Bounds.GetCenter() - Neighbor->OctreeNode->Bounds.GetCenter()).SquaredLength();
+
+			int32 DepthFactor = 100 * Neighbor->OctreeNode->Depth;
+
+			// tentative gcost
+			float TempG = DepthFactor + Current->G + (Current->OctreeNode->Bounds.GetCenter() - Neighbor->OctreeNode->Bounds.GetCenter()).SquaredLength();
 
 			if (ClosedList.Contains(Neighbor)) {
 				continue;
 			}
 
-			TempG = Current->G + (Current->OctreeNode->Bounds.GetCenter() - Neighbor->OctreeNode->Bounds.GetCenter()).SquaredLength();
-			if (!OpenListSet.Contains(Neighbor)) {
-				OpenList.Push(Neighbor, Neighbor->F);
+			if (!OpenListSet.Contains(Neighbor) || TempG < Neighbor->G) {
+				OpenList.Push(Neighbor, TempG + (Neighbor->OctreeNode->Bounds.GetCenter() - End->Bounds.GetCenter()).SquaredLength());
 				OpenListSet.Add(Neighbor);
-				bIsTempBetter = true;
-			}
-			else if (TempG < Neighbor->G) {
-				bIsTempBetter = true;
-			}
-			else {
-				bIsTempBetter = false;
-			}
 
-			if (bIsTempBetter) {
 				Neighbor->CameFrom = Current;
 				Neighbor->G = TempG;
-				Neighbor->H = (Current->OctreeNode->Bounds.GetCenter() - End->Bounds.GetCenter()).SquaredLength();
+				Neighbor->H = DepthFactor + (Neighbor->OctreeNode->Bounds.GetCenter() - End->Bounds.GetCenter()).SquaredLength();
 				Neighbor->F = Neighbor->G + Neighbor->H;
 			}
 		}
+
 	}
 	return false;
 }
+
 
 void FAStar::ReconstructPath(FAStarNode* A, FAStarNode* B, TArray<FAStarNode*>& OutPath)
 {
